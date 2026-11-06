@@ -1,13 +1,14 @@
 /**
  * Prabhat Maharjan - Main UI Interactions & Features
- * Handles navigation, concert countdown, live shows filtering,
- * Instagram feed lightbox, mastering comparison slider, and UI toasts.
+ * Handles multi-page navigation, active links, concert countdown,
+ * live shows filtering, Instagram lightbox modal, mastering comparison, and UI toasts.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initConcertCountdown();
   initShowsFilter();
+  initGalleryFilter();
   initMasteringSlider();
   initInstagramLightbox();
   initFaqAccordion();
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* --------------------------------------------------------------------------
-   NAVBAR & MOBILE MENU
+   NAVBAR & ACTIVE LINK HIGHLIGHTING
 -------------------------------------------------------------------------- */
 function initNavbar() {
   const navbar = document.getElementById('navbar');
@@ -25,13 +26,15 @@ function initNavbar() {
   const mobileLinks = document.querySelectorAll('.mobile-nav-link');
 
   // Sticky navbar shadow on scroll
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 40) {
-      navbar.classList.add('scrolled');
-    } else {
-      navbar.classList.remove('scrolled');
-    }
-  });
+  if (navbar) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+  }
 
   // Toggle mobile drawer
   if (navToggle && mobileMenu) {
@@ -52,28 +55,41 @@ function initNavbar() {
     });
   }
 
-  // Active link scroll spy
-  const sections = document.querySelectorAll('section[id]');
-  window.addEventListener('scroll', () => {
-    const scrollY = window.pageYOffset + 120;
-    sections.forEach(current => {
-      const sectionHeight = current.offsetHeight;
-      const sectionTop = current.offsetTop;
-      const sectionId = current.getAttribute('id');
-      const targetNav = document.querySelector(`.nav-links a[href*="${sectionId}"]`);
-      if (targetNav) {
-        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-          targetNav.classList.add('active');
-        } else {
-          targetNav.classList.remove('active');
-        }
+  // Auto-detect and set active class based on current page filename
+  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav-links a, .mobile-nav-link').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href) {
+      const pagePart = href.split('#')[0];
+      if (pagePart === currentPath || (currentPath === 'index.html' && (pagePart === '' || pagePart === 'index.html') && !href.includes('#'))) {
+        link.classList.add('active');
       }
-    });
+    }
   });
+
+  // Active link scroll spy (only for on-page hash links on index.html)
+  if (currentPath === 'index.html' || currentPath === '') {
+    const sections = document.querySelectorAll('section[id]');
+    window.addEventListener('scroll', () => {
+      const scrollY = window.pageYOffset + 140;
+      sections.forEach(current => {
+        const sectionHeight = current.offsetHeight;
+        const sectionTop = current.offsetTop;
+        const sectionId = current.getAttribute('id');
+        const targetNav = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
+        if (targetNav) {
+          if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            targetNav.classList.add('active');
+          }
+        }
+      });
+    });
+  }
 }
 
 /* --------------------------------------------------------------------------
-   CONCERT COUNTDOWN TIMER (Kathmandu Acoustic Echoes - Nov 18, 2026)
+   CONCERT COUNTDOWN TIMER (Kathmandu Acoustic Echoes)
 -------------------------------------------------------------------------- */
 function initConcertCountdown() {
   const targetDate = new Date('2026-11-18T20:00:00+05:45').getTime();
@@ -99,13 +115,13 @@ function initConcertCountdown() {
 
     const days = Math.floor(distance / (1000 * 60 * 60 * 24));
     const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((distance % (1000 * 60)) / 1000);
 
-    daysEl.textContent = String(days).padStart(2, '0');
-    hoursEl.textContent = String(hours).padStart(2, '0');
-    minsEl.textContent = String(minutes).padStart(2, '0');
-    secsEl.textContent = String(seconds).padStart(2, '0');
+    if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+    if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+    if (minsEl) minsEl.textContent = String(mins).padStart(2, '0');
+    if (secsEl) secsEl.textContent = String(secs).padStart(2, '0');
   }
 
   update();
@@ -113,10 +129,10 @@ function initConcertCountdown() {
 }
 
 /* --------------------------------------------------------------------------
-   UPCOMING LIVE SHOWS / GIGS FILTERING & RSVP
+   UPCOMING LIVE SHOWS / GIGS FILTERING & TICKET ACTIONS
 -------------------------------------------------------------------------- */
 function initShowsFilter() {
-  const filterBtns = document.querySelectorAll('.shows-filter-btn');
+  const filterBtns = document.querySelectorAll('.filter-btn[data-filter], .shows-filter-btn');
   const showCards = document.querySelectorAll('.show-card');
 
   filterBtns.forEach(btn => {
@@ -136,15 +152,42 @@ function initShowsFilter() {
     });
   });
 
-  // RSVP / Remind Me modal or triggers
-  const rsvpBtns = document.querySelectorAll('.btn-rsvp');
-  rsvpBtns.forEach(btn => {
+  // Ticket reservation buttons
+  const ticketBtns = document.querySelectorAll('.btn-ticket, .btn-rsvp');
+  ticketBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const showTitle = btn.dataset.show || 'Upcoming Show';
-      const venue = btn.dataset.venue || 'Kathmandu';
-      showToast(`🎟️ RSVP Recorded for "${showTitle}" at ${venue}! We'll send you a reminder.`);
-      btn.textContent = 'RSVP Confirmed ✓';
-      btn.classList.add('confirmed');
+      const showTitle = btn.dataset.show || 'Upcoming Concert';
+      showToast(`🎟️ Reserving seats for "${showTitle}"... Redirecting to booking.`);
+      setTimeout(() => {
+        window.location.href = `booking.html?show=${encodeURIComponent(showTitle)}`;
+      }, 1000);
+    });
+  });
+}
+
+/* --------------------------------------------------------------------------
+   VISUAL GALLERY CATEGORY FILTERING
+-------------------------------------------------------------------------- */
+function initGalleryFilter() {
+  const filterBtns = document.querySelectorAll('[data-gallery-filter]');
+  const galleryCards = document.querySelectorAll('#full-gallery-grid .insta-card');
+
+  if (!filterBtns.length || !galleryCards.length) return;
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const category = btn.dataset.galleryFilter;
+
+      galleryCards.forEach(card => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.style.display = 'block';
+          card.classList.add('fade-in');
+        } else {
+          card.style.display = 'none';
+        }
+      });
     });
   });
 }
@@ -153,29 +196,60 @@ function initShowsFilter() {
    BEFORE & AFTER MASTERING AUDIO / VISUAL COMPARISON SLIDER
 -------------------------------------------------------------------------- */
 function initMasteringSlider() {
-  const slider = document.getElementById('mastering-slider-range');
-  const afterLayer = document.getElementById('mastering-after-layer');
-  const handle = document.getElementById('slider-handle');
+  const container = document.getElementById('split-container');
+  const overlay = document.getElementById('split-overlay');
+  const divider = document.getElementById('split-divider');
+  const toggleBtn = document.getElementById('ab-toggle-btn');
+  const modeLabel = document.getElementById('ab-current-mode');
 
-  if (!slider || !afterLayer) return;
+  if (!container || !overlay || !divider) return;
 
-  function updatePosition(val) {
-    afterLayer.style.width = `${val}%`;
-    if (handle) handle.style.left = `${val}%`;
+  let isDragging = false;
 
-    // Also trigger audio engine mastering intensity if playing
-    if (window.artistAudio) {
-      if (val > 50) {
-        window.artistAudio.setMasteringMode(true);
-      } else {
-        window.artistAudio.setMasteringMode(false);
-      }
-    }
+  function setSplitPosition(percent) {
+    const clamped = Math.max(0, Math.min(100, percent));
+    overlay.style.width = `${clamped}%`;
+    divider.style.left = `${clamped}%`;
   }
 
-  slider.addEventListener('input', (e) => {
-    updatePosition(e.target.value);
+  function handleMove(clientX) {
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percent = (x / rect.width) * 100;
+    setSplitPosition(percent);
+  }
+
+  divider.addEventListener('mousedown', () => { isDragging = true; });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) handleMove(e.clientX);
   });
+
+  // Touch support for mobile devices
+  divider.addEventListener('touchstart', () => { isDragging = true; }, { passive: true });
+  window.addEventListener('touchend', () => { isDragging = false; });
+  window.addEventListener('touchmove', (e) => {
+    if (isDragging && e.touches[0]) handleMove(e.touches[0].clientX);
+  }, { passive: true });
+
+  // Instant A/B Toggle Button
+  if (toggleBtn && modeLabel) {
+    let isMastered = true;
+    toggleBtn.addEventListener('click', () => {
+      isMastered = !isMastered;
+      if (isMastered) {
+        setSplitPosition(100);
+        modeLabel.textContent = 'MASTERED';
+        modeLabel.style.color = 'var(--accent-gold)';
+        showToast('🔊 Switched to Analog Mastered Chain (SSL + Neve Tape)');
+      } else {
+        setSplitPosition(0);
+        modeLabel.textContent = 'ROUGH MIX';
+        modeLabel.style.color = '#ef4444';
+        showToast('🔉 Switched to Before: Raw Flat Mix');
+      }
+    });
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -183,39 +257,49 @@ function initMasteringSlider() {
 -------------------------------------------------------------------------- */
 function initInstagramLightbox() {
   const instaItems = document.querySelectorAll('.insta-card');
-  const modal = document.getElementById('insta-lightbox-modal');
+  const modal = document.getElementById('lightbox-modal') || document.getElementById('insta-lightbox-modal');
   const modalImg = document.getElementById('lightbox-img');
   const modalCaption = document.getElementById('lightbox-caption');
   const modalLikes = document.getElementById('lightbox-likes');
-  const modalLink = document.getElementById('lightbox-insta-link');
-  const closeBtn = document.getElementById('close-insta-modal');
+  const closeBtn = document.getElementById('lightbox-close') || document.getElementById('close-insta-modal');
+  const backdrop = document.getElementById('lightbox-backdrop');
 
-  if (!modal) return;
+  if (!modal || !modalImg) return;
 
   instaItems.forEach(item => {
     item.addEventListener('click', () => {
-      const imgSrc = item.querySelector('img').src;
-      const caption = item.dataset.caption || 'Live from Kathmandu music studio.';
-      const likes = item.dataset.likes || '482';
+      const img = item.querySelector('img');
+      if (!img) return;
+      const imgSrc = img.src;
+      const caption = item.dataset.caption || img.alt || 'Prabhat Maharjan in Kathmandu.';
+      const likes = item.dataset.likes || '540';
 
       modalImg.src = imgSrc;
-      modalCaption.textContent = caption;
-      modalLikes.textContent = `${likes} likes`;
-      modalLink.href = 'https://www.instagram.com/maharjan.prabhat/';
+      if (modalCaption) modalCaption.textContent = caption;
+      if (modalLikes) modalLikes.textContent = `❤️ ${likes} likes`;
 
       modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
     });
   });
 
   const closeModal = () => {
     modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
   };
 
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
   });
 }
 
@@ -233,6 +317,9 @@ function initFaqAccordion() {
 
       if (!isOpen) {
         item.classList.add('active');
+        q.setAttribute('aria-expanded', 'true');
+      } else {
+        q.setAttribute('aria-expanded', 'false');
       }
     });
   });
@@ -247,10 +334,10 @@ function initContactForm() {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const name = form.querySelector('[name="name"]').value;
-    const msg = form.querySelector('[name="message"]').value;
+    const nameInput = form.querySelector('[name="name"]');
+    const name = nameInput ? nameInput.value : 'Friend';
 
-    showToast(`Thank you ${name}! Your inquiry has been sent to Prabhat.`);
+    showToast(`Thank you ${name}! Your inquiry has been sent to Prabhat Maharjan.`);
     form.reset();
   });
 }
@@ -271,7 +358,7 @@ function showToast(message) {
   toast.className = 'toast-message';
   toast.innerHTML = `
     <span>${message}</span>
-    <button class="toast-close">&times;</button>
+    <button class="toast-close" aria-label="Close alert">&times;</button>
   `;
 
   toast.querySelector('.toast-close').onclick = () => {
@@ -292,7 +379,7 @@ function showToast(message) {
 function initScrollAnimations() {
   const observerOptions = {
     threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+    rootMargin: '0px 0px -40px 0px'
   };
 
   const observer = new IntersectionObserver((entries) => {

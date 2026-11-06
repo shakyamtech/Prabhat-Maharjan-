@@ -1,21 +1,23 @@
 /**
  * Prabhat Maharjan - Appointment & Studio Booking System
- * Handles session service selection, interactive calendar,
- * time slots, WhatsApp integration, and .ics calendar generation.
+ * Multi-step session scheduling, URL query auto-selection,
+ * date picker, time slots, WhatsApp direct link, and .ics export.
  */
 
 class BookingSystem {
   constructor() {
-    this.selectedService = 'Song Composing & Music Production';
+    this.selectedService = 'Mixing & Mastering';
     this.selectedDate = null;
-    this.selectedTimeSlot = '02:00 PM - 05:00 PM';
-    this.selectedPrice = 'NPR 15,000 / $120';
+    this.selectedTimeSlot = '10:00 AM - 01:00 PM';
+    this.selectedPrice = 'From Rs. 3,500 / $35';
     this.bookingsKey = 'prabhat_maharjan_client_bookings';
 
     this.init();
   }
 
   init() {
+    this.initUrlParams();
+    this.initWizardNavigation();
     this.initServiceSelectors();
     this.initDatePicker();
     this.initTimeSlots();
@@ -23,20 +25,82 @@ class BookingSystem {
     this.renderExistingBookingsBadge();
   }
 
+  initUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const serviceParam = params.get('service');
+    const showParam = params.get('show');
+
+    if (showParam) {
+      this.selectedService = `Live Show Reservation: ${decodeURIComponent(showParam)}`;
+      const liveCard = document.querySelector('input[name="service"][value="live-gig"]');
+      if (liveCard) {
+        liveCard.checked = true;
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('active'));
+        liveCard.closest('.service-card').classList.add('active');
+      }
+      const notesEl = document.getElementById('client-notes');
+      if (notesEl) {
+        notesEl.value = `I would like to reserve seats / inquire about the upcoming show: ${decodeURIComponent(showParam)}.`;
+      }
+    } else if (serviceParam) {
+      const radio = document.querySelector(`input[name="service"][value="${serviceParam}"]`);
+      if (radio) {
+        radio.checked = true;
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('active'));
+        radio.closest('.service-card').classList.add('active');
+      }
+    }
+  }
+
+  initWizardNavigation() {
+    const btnToStep2 = document.getElementById('btn-to-step-2');
+    const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
+    const btnToStep3 = document.getElementById('btn-to-step-3');
+    const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
+    const btnBookAnother = document.getElementById('btn-book-another');
+
+    if (btnToStep2) btnToStep2.onclick = () => this.goToStep(2);
+    if (btnBackToStep1) btnBackToStep1.onclick = () => this.goToStep(1);
+    if (btnToStep3) btnToStep3.onclick = () => this.goToStep(3);
+    if (btnBackToStep2) btnBackToStep2.onclick = () => this.goToStep(2);
+
+    if (btnBookAnother) {
+      btnBookAnother.onclick = () => {
+        const form = document.getElementById('booking-form');
+        if (form) form.reset();
+        this.goToStep(1);
+      };
+    }
+  }
+
+  goToStep(stepNum) {
+    // Hide all panels
+    document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+    // Deactivate all step indicators
+    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+
+    const targetPanel = document.getElementById(`panel-step-${stepNum}`);
+    if (targetPanel) targetPanel.classList.add('active');
+
+    for (let i = 1; i <= stepNum; i++) {
+      const indicator = document.getElementById(`step-indicator-${i}`);
+      if (indicator) indicator.classList.add('active');
+    }
+
+    window.scrollTo({ top: targetPanel.offsetTop - 120, behavior: 'smooth' });
+  }
+
   initServiceSelectors() {
-    const serviceCards = document.querySelectorAll('.service-select-card');
-    serviceCards.forEach(card => {
-      card.addEventListener('click', () => {
-        serviceCards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        this.selectedService = card.dataset.service;
-        this.selectedPrice = card.dataset.rate || 'Custom Quote';
-
-        const summaryService = document.getElementById('summary-service-text');
-        if (summaryService) summaryService.textContent = this.selectedService;
-
-        const summaryPrice = document.getElementById('summary-price-text');
-        if (summaryPrice) summaryPrice.textContent = this.selectedPrice;
+    const serviceRadios = document.querySelectorAll('input[name="service"]');
+    serviceRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('active'));
+        const card = radio.closest('.service-card');
+        if (card) {
+          card.classList.add('active');
+          const title = card.querySelector('h4');
+          if (title) this.selectedService = title.textContent.trim();
+        }
       });
     });
   }
@@ -49,8 +113,7 @@ class BookingSystem {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const minDateStr = tomorrow.toISOString().split('T')[0];
-    dateInput.min = minDateStr;
+    dateInput.min = tomorrow.toISOString().split('T')[0];
 
     // Default to 2 days from now
     const defaultDate = new Date(today);
@@ -58,31 +121,27 @@ class BookingSystem {
     dateInput.value = defaultDate.toISOString().split('T')[0];
     this.selectedDate = dateInput.value;
 
-    const summaryDate = document.getElementById('summary-date-text');
-    if (summaryDate) summaryDate.textContent = this.formatDate(this.selectedDate);
-
     dateInput.addEventListener('change', (e) => {
       this.selectedDate = e.target.value;
-      if (summaryDate) summaryDate.textContent = this.formatDate(this.selectedDate);
     });
   }
 
   initTimeSlots() {
-    const slotButtons = document.querySelectorAll('.slot-btn');
-    slotButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        slotButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.selectedTimeSlot = btn.dataset.slot;
-
-        const summaryTime = document.getElementById('summary-time-text');
-        if (summaryTime) summaryTime.textContent = this.selectedTimeSlot;
+    const slotRadios = document.querySelectorAll('input[name="time_slot"]');
+    slotRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.slot-pill').forEach(p => p.classList.remove('active'));
+        const pill = radio.closest('.slot-pill');
+        if (pill) {
+          pill.classList.add('active');
+          this.selectedTimeSlot = radio.value;
+        }
       });
     });
   }
 
   initFormSubmit() {
-    const form = document.getElementById('studio-booking-form');
+    const form = document.getElementById('booking-form');
     if (!form) return;
 
     form.addEventListener('submit', (e) => {
@@ -91,15 +150,15 @@ class BookingSystem {
       const name = document.getElementById('client-name').value.trim();
       const phone = document.getElementById('client-phone').value.trim();
       const email = document.getElementById('client-email').value.trim();
+      const location = document.getElementById('client-location').value;
       const notes = document.getElementById('client-notes').value.trim();
-      const refLink = document.getElementById('client-ref-link').value.trim();
 
-      if (!name || !phone) {
-        alert('Please provide your name and phone/WhatsApp number.');
+      if (!name || !phone || !email) {
+        alert('Please provide your name, email, and phone/WhatsApp number.');
         return;
       }
 
-      const bookingId = 'PM-' + Math.floor(100000 + Math.random() * 900000);
+      const bookingId = 'PM-2026-' + Math.floor(1000 + Math.random() * 9000);
       const bookingData = {
         id: bookingId,
         clientName: name,
@@ -108,16 +167,49 @@ class BookingSystem {
         service: this.selectedService,
         date: this.selectedDate,
         timeSlot: this.selectedTimeSlot,
-        rateEstimate: this.selectedPrice,
+        location: location,
         notes: notes,
-        refLink: refLink,
         timestamp: new Date().toISOString(),
         status: 'Confirmed'
       };
 
       this.saveBooking(bookingData);
-      this.showConfirmationModal(bookingData);
+      this.renderConfirmation(bookingData);
+      this.goToStep(4);
     });
+  }
+
+  renderConfirmation(data) {
+    const idEl = document.getElementById('confirmed-booking-id');
+    const serviceEl = document.getElementById('summary-service-name');
+    const dtEl = document.getElementById('summary-datetime');
+    const nameEl = document.getElementById('summary-client-name');
+    const locEl = document.getElementById('summary-location');
+
+    if (idEl) idEl.textContent = data.id;
+    if (serviceEl) serviceEl.textContent = data.service;
+    if (dtEl) dtEl.textContent = `${this.formatDate(data.date)} • ${data.timeSlot}`;
+    if (nameEl) nameEl.textContent = data.clientName;
+    if (locEl) {
+      locEl.textContent = data.location === 'in-studio' ? 'In-Person Studio (Patan)' :
+                          data.location === 'remote-online' ? 'Remote Online (Stems by Drive)' : 'On-Venue Performance';
+    }
+
+    // Direct WhatsApp Link
+    const waText = encodeURIComponent(
+      `Namaste Prabhat ji! 🎵\n\nI have scheduled an appointment on your official website:\n- Reference ID: ${data.id}\n- Name: ${data.clientName}\n- Service: ${data.service}\n- Date & Slot: ${this.formatDate(data.date)} (${data.timeSlot})\n- Format: ${data.location}\n- Contact: ${data.phone} / ${data.email}\n${data.notes ? '- Project Notes: ' + data.notes + '\n' : ''}\nLooking forward to collaborating with you!`
+    );
+
+    const waBtn = document.getElementById('btn-whatsapp-direct');
+    if (waBtn) {
+      waBtn.href = `https://wa.me/9779841000000?text=${waText}`;
+    }
+
+    // Calendar .ics export
+    const calBtn = document.getElementById('btn-download-ics');
+    if (calBtn) {
+      calBtn.onclick = () => this.generateIcsFile(data);
+    }
   }
 
   saveBooking(booking) {
@@ -149,45 +241,6 @@ class BookingSystem {
     }
   }
 
-  showConfirmationModal(data) {
-    const modal = document.getElementById('booking-modal');
-    if (!modal) return;
-
-    document.getElementById('modal-booking-id').textContent = data.id;
-    document.getElementById('modal-client-name').textContent = data.clientName;
-    document.getElementById('modal-service-name').textContent = data.service;
-    document.getElementById('modal-session-date').textContent = `${this.formatDate(data.date)} (${data.timeSlot})`;
-    document.getElementById('modal-rate-estimate').textContent = data.rateEstimate;
-
-    // WhatsApp Direct Link
-    const waText = encodeURIComponent(
-      `Namaste Prabhat ji! 🎵\n\nI have submitted a studio session booking:\n- Booking ID: ${data.id}\n- Name: ${data.clientName}\n- Service: ${data.service}\n- Date & Slot: ${this.formatDate(data.date)} (${data.timeSlot})\n- Contact: ${data.phone}\n${data.notes ? '- Project Note: ' + data.notes + '\n' : ''}${data.refLink ? '- Reference Link: ' + data.refLink + '\n' : ''}\nLooking forward to working together!`
-    );
-    const waBtn = document.getElementById('modal-whatsapp-link');
-    if (waBtn) {
-      // Prabhat's direct booking WhatsApp contact (Nepal country code +977)
-      waBtn.href = `https://wa.me/9779841000000?text=${waText}`;
-      waBtn.target = '_blank';
-    }
-
-    // Calendar .ics download
-    const calBtn = document.getElementById('modal-download-ics');
-    if (calBtn) {
-      calBtn.onclick = () => this.generateIcsFile(data);
-    }
-
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-
-    const closeBtn = document.getElementById('close-booking-modal');
-    if (closeBtn) {
-      closeBtn.onclick = () => {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-      };
-    }
-  }
-
   generateIcsFile(data) {
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -196,7 +249,7 @@ class BookingSystem {
       'BEGIN:VEVENT',
       `SUMMARY:Prabhat Maharjan Studio Session - ${data.service}`,
       `DESCRIPTION:Booking ID: ${data.id}\\nService: ${data.service}\\nClient: ${data.clientName}\\nSlot: ${data.timeSlot}`,
-      'LOCATION:Prabhat Maharjan Sound Studio, Kathmandu, Nepal',
+      'LOCATION:Prabhat Maharjan Sound Studio, Patan, Kathmandu, Nepal',
       `STATUS:CONFIRMED`,
       'END:VEVENT',
       'END:VCALENDAR'

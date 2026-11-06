@@ -44,7 +44,11 @@ An ultra-premium, dark-themed responsive web application built for Nepali singer
 
 ```
 d:/Developing/Prabhat Maharjan/
-├── index.html              # Main semantic HTML5 webpage with SEO metadata
+├── index.html              # Main Home Landing page (Hero, Talents, Audio Player)
+├── mixing-mastering.html   # Dedicated Audio Engineering Suite & A/B Mastering
+├── shows.html              # Dedicated Live Shows, Concerts & Tour Dates
+├── gallery.html            # Dedicated High-Res Visual Gallery & Instagram Feed
+├── booking.html            # Dedicated Session Appointment Booking & Scheduler
 ├── README.md               # Documentation and usage guide
 ├── css/
 │   └── style.css           # Vanilla CSS design system (Acoustic Amber & Electric Violet)
