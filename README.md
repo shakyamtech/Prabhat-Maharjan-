@@ -54,13 +54,17 @@ d:/Developing/Prabhat Maharjan/
 │   └── booking.js          # Appointment system, WhatsApp booking, and .ics export
 └── assets/
     └── images/
-        ├── hero-artist.jpg           # Prabhat Maharjan in studio with guitar & mic
-        ├── mixing-console.jpg        # Studio mixing console & DAW waveform monitors
-        ├── piano-performance.jpg     # Steinway grand piano acoustic recital
-        ├── violin-solo.jpg           # Emotive violin solo in stage spotlight
-        ├── live-concert.jpg          # Singing live at Kathmandu Music Fest
-        ├── guitar-fingerstyle.jpg    # Fingerstyle acoustic guitar macro close-up
-        └── lifestyle-songwriter.jpg  # Kathmandu rooftop terrace songwriting
+        ├── hero-artist.jpg           # Official studio portrait of Prabhat Maharjan
+        ├── single-timi-kaha.jpg      # Official release poster for 'तिमी कहाँ'
+        ├── piano-performance.jpg     # Prabhat singing live while playing piano keyboard
+        ├── live-concert.jpg          # Prabhat on stage with full symphony orchestra & violins
+        ├── violin-solo.jpg           # Prabhat playing acoustic violin into studio condenser mic
+        ├── guitar-fingerstyle.jpg    # Prabhat with acoustic guitar, bansuri and tabla ensemble
+        ├── vocal-booth.jpg           # Prabhat in studio vocal condenser booth
+        ├── lifestyle-songwriter.jpg  # Prabhat candid portrait in Kathmandu
+        ├── backstage-maestro.jpg     # Prabhat backstage with senior music director
+        ├── gala-hall.jpg             # Prabhat at grand chandelier gala evening
+        └── insta-1.jpg .. insta-8.jpg # Curated 8-tile visual feed from @maharjan.prabhat
 ```
 
 ---
