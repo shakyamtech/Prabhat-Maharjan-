@@ -68,15 +68,53 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Logged out of Studio CMS.');
   });
 
+  // Tabs & Sidebar Navigation
+  const navItems = document.querySelectorAll('.sidebar-nav-item, .cms-tab-btn');
+  const tabPanes = document.querySelectorAll('.cms-pane');
+  const currentTabTitle = document.getElementById('current-tab-title');
+  const sidebarPendingBadge = document.getElementById('sidebar-pending-badge');
+
+  // Mobile Sidebar Elements
+  const sidebar = document.getElementById('admin-sidebar');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebarClose = document.getElementById('sidebar-close');
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+  function openSidebar() {
+    if (sidebar) sidebar.classList.add('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('open');
+  }
+
+  function closeSidebar() {
+    if (sidebar) sidebar.classList.remove('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('open');
+  }
+
+  if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+  if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+  if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+
   // Tab Switching
-  tabBtns.forEach(btn => {
+  navItems.forEach(btn => {
     btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.classList.remove('active'));
+      navItems.forEach(b => b.classList.remove('active'));
       tabPanes.forEach(p => p.classList.remove('active'));
 
       btn.classList.add('active');
       const targetId = btn.getAttribute('data-tab');
-      document.getElementById(targetId).classList.add('active');
+      const targetPane = document.getElementById(targetId);
+      if (targetPane) targetPane.classList.add('active');
+
+      // Update Topbar Title
+      const navTextEl = btn.querySelector('.nav-text');
+      if (currentTabTitle && navTextEl) {
+        currentTabTitle.textContent = navTextEl.textContent.trim();
+      }
+
+      // Close mobile drawer after selection
+      if (window.innerWidth <= 992) {
+        closeSidebar();
+      }
     });
   });
 
@@ -129,6 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const pending = bookings.filter(b => b.status === 'Pending').length;
     kpiBookings.textContent = bookings.length;
     kpiPending.textContent = `${pending} pending`;
+
+    if (sidebarPendingBadge) {
+      sidebarPendingBadge.textContent = pending;
+      sidebarPendingBadge.style.display = pending > 0 ? 'inline-block' : 'none';
+    }
 
     kpiShows.textContent = store.getShows().length;
     kpiTracks.textContent = store.getTracks().length;
