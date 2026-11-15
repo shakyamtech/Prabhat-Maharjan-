@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS = {
   studioAddress: 'Prabhat Maharjan Sound Studio, Patan, Kathmandu, Nepal',
   instagramUrl: 'https://www.instagram.com/maharjan.prabhat/',
   youtubeUrl: 'https://www.youtube.com',
-  adminPin: 'prabhat@studio2026'
+  adminPin: 'studio@2026'
 };
 
 const DEFAULT_SHOWS = [
@@ -301,7 +301,7 @@ class CMSStore {
 
   login(pin) {
     const settings = this.getSettings();
-    if (pin === settings.adminPin || pin === 'prabhat@studio2026') {
+    if (pin === settings.adminPin || pin === 'studio@2026') {
       sessionStorage.setItem(CMS_STORAGE_KEYS.AUTH, 'true');
       return true;
     }
