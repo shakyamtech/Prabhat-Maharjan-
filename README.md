@@ -1,6 +1,11 @@
 # Prabhat Maharjan — Official Artist & Studio Portfolio Website
 
+[![Cloudflare Pages](https://img.shields.io/badge/Hosted_on-Cloudflare_Pages-F38020?logo=cloudflare&logoColor=white)](https://prabhat-maharjan.pages.dev)
+[![Live Site](https://img.shields.io/badge/Live_Website-prabhat--maharjan.pages.dev-10B981?style=flat&logo=googlechrome&logoColor=white)](https://prabhat-maharjan.pages.dev)
+
 An ultra-premium, dark-themed responsive web application built for Nepali singer, multi-instrumentalist, composer, and audio mixing & mastering engineer **Prabhat Maharjan**.
+
+🌐 **Live URL**: [https://prabhat-maharjan.pages.dev](https://prabhat-maharjan.pages.dev)
 
 ---
 
