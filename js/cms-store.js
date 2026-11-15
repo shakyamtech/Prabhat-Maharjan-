@@ -480,3 +480,4 @@ class CMSStore {
 
 // Global instance
 window.cmsStore = new CMSStore();
+

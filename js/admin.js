@@ -501,3 +501,4 @@ document.addEventListener('DOMContentLoaded', () => {
   setupModals();
   checkAuth();
 });
+
