@@ -19,10 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const kpiTracks = document.getElementById('kpi-tracks-count');
   const kpiGallery = document.getElementById('kpi-gallery-count');
 
-  // Tabs
-  const tabBtns = document.querySelectorAll('.cms-tab-btn');
-  const tabPanes = document.querySelectorAll('.cms-pane');
-
   // Toast
   const toast = document.getElementById('admin-toast');
   const toastMsg = document.getElementById('toast-msg');
@@ -61,6 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => adminPinInput.classList.remove('error'), 1000);
     }
   });
+
+  // Eye toggle for password visibility
+  const btnTogglePwd = document.getElementById('btn-toggle-pwd');
+  if (btnTogglePwd) {
+    btnTogglePwd.addEventListener('click', () => {
+      const type = adminPinInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      adminPinInput.setAttribute('type', type);
+      btnTogglePwd.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+  }
+
+  // Click-to-fill default pin badge
+  const defaultPinBadge = document.getElementById('default-pin-badge');
+  if (defaultPinBadge) {
+    defaultPinBadge.addEventListener('click', () => {
+      adminPinInput.value = 'prabhat@studio2026';
+      adminPinInput.focus();
+    });
+  }
 
   btnLogout.addEventListener('click', () => {
     store.logout();
