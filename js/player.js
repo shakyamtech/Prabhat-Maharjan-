@@ -19,7 +19,7 @@ class AudioEngine {
     this.isMasteredMode = true; // For A/B testing
     this.activeNodes = [];
 
-    this.tracks = [
+    const defaultTracks = [
       {
         id: 'track-1',
         title: 'Timi Kaha (तिमी कहाँ)',
@@ -81,6 +81,8 @@ class AudioEngine {
         style: 'stem-showcase'
       }
     ];
+
+    this.tracks = (window.cmsStore && window.cmsStore.getTracks) ? window.cmsStore.getTracks() : defaultTracks;
 
     this.initElements();
     this.initVisualizer();

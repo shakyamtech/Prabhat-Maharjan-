@@ -200,9 +200,10 @@ class BookingSystem {
       `Namaste Prabhat ji! 🎵\n\nI have scheduled an appointment on your official website:\n- Reference ID: ${data.id}\n- Name: ${data.clientName}\n- Service: ${data.service}\n- Date & Slot: ${this.formatDate(data.date)} (${data.timeSlot})\n- Format: ${data.location}\n- Contact: ${data.phone} / ${data.email}\n${data.notes ? '- Project Notes: ' + data.notes + '\n' : ''}\nLooking forward to collaborating with you!`
     );
 
+    const waNumber = (window.cmsStore && window.cmsStore.getSettings) ? window.cmsStore.getSettings().whatsappNumber : '9779841000000';
     const waBtn = document.getElementById('btn-whatsapp-direct');
     if (waBtn) {
-      waBtn.href = `https://wa.me/9779841000000?text=${waText}`;
+      waBtn.href = `https://wa.me/${waNumber}?text=${waText}`;
     }
 
     // Calendar .ics export
@@ -213,15 +214,19 @@ class BookingSystem {
   }
 
   saveBooking(booking) {
-    let list = [];
-    try {
-      const existing = localStorage.getItem(this.bookingsKey);
-      if (existing) list = JSON.parse(existing);
-    } catch (e) {
-      list = [];
+    if (window.cmsStore && window.cmsStore.addBooking) {
+      window.cmsStore.addBooking(booking);
+    } else {
+      let list = [];
+      try {
+        const existing = localStorage.getItem(this.bookingsKey);
+        if (existing) list = JSON.parse(existing);
+      } catch (e) {
+        list = [];
+      }
+      list.unshift(booking);
+      localStorage.setItem(this.bookingsKey, JSON.stringify(list));
     }
-    list.unshift(booking);
-    localStorage.setItem(this.bookingsKey, JSON.stringify(list));
     this.renderExistingBookingsBadge();
   }
 

@@ -132,6 +132,35 @@ function initConcertCountdown() {
    UPCOMING LIVE SHOWS / GIGS FILTERING & TICKET ACTIONS
 -------------------------------------------------------------------------- */
 function initShowsFilter() {
+  const showsGrid = document.getElementById('shows-grid');
+  if (showsGrid && window.cmsStore && window.cmsStore.getShows) {
+    const shows = window.cmsStore.getShows();
+    if (shows && shows.length > 0) {
+      showsGrid.innerHTML = shows.map(s => `
+        <div class="show-card" data-category="${s.category}">
+          <div class="show-date-badge">
+            <span class="show-month">${s.month || 'NOV'}</span>
+            <span class="show-day">${s.day || '01'}</span>
+            <span class="show-year">${s.year || '2026'}</span>
+          </div>
+          <div class="show-details">
+            <div class="show-status-badge ${s.status === 'Sold Out' ? 'status-sold' : s.status === 'Limited Seats' ? 'status-selling' : 'status-available'}">${s.status}</div>
+            <h3 class="show-title">${s.title}</h3>
+            <div class="show-venue">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <span>${s.venue}</span>
+            </div>
+            <p class="show-desc">${s.description || ''}</p>
+          </div>
+          <div class="show-actions">
+            <button class="btn btn-primary btn-sm btn-ticket" data-show="${s.title} (${s.month} ${s.day}, ${s.year})">${s.ticketText || 'Reserve Seats'}</button>
+            <a href="${s.mapUrl || 'https://maps.google.com'}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Venue Map</a>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
   const filterBtns = document.querySelectorAll('.filter-btn[data-filter], .shows-filter-btn');
   const showCards = document.querySelectorAll('.show-card');
 
@@ -169,6 +198,22 @@ function initShowsFilter() {
    VISUAL GALLERY CATEGORY FILTERING
 -------------------------------------------------------------------------- */
 function initGalleryFilter() {
+  const fullGalleryGrid = document.getElementById('full-gallery-grid');
+  if (fullGalleryGrid && window.cmsStore && window.cmsStore.getGallery) {
+    const galleryItems = window.cmsStore.getGallery();
+    if (galleryItems && galleryItems.length > 0) {
+      fullGalleryGrid.innerHTML = galleryItems.map(g => `
+        <div class="insta-card" data-category="${g.category}" data-caption="${(g.caption || '').replace(/"/g, '&quot;')}" data-likes="${g.likes || 0}">
+          <img src="${g.src}" alt="${(g.caption || '').replace(/"/g, '&quot;')}">
+          <div class="insta-overlay">
+            <div class="insta-overlay-item">❤️ <span>${g.likes || 0}</span></div>
+            <div class="insta-overlay-item">💬 <span>${g.comments || 0}</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
   const filterBtns = document.querySelectorAll('[data-gallery-filter]');
   const galleryCards = document.querySelectorAll('#full-gallery-grid .insta-card');
 
