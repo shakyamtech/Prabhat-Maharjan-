@@ -130,52 +130,39 @@ function initConcertCountdown() {
 
   if (!daysEl) return;
 
-  // Dynamically determine the next upcoming concert target date from CMS store
-  let targetDate = null;
-  let upcomingShow = null;
-
-  if (window.cmsStore && window.cmsStore.getShows) {
+  function findNextShow() {
+    if (!window.cmsStore || !window.cmsStore.getShows) return null;
     const shows = window.cmsStore.getShows();
     const nowMs = Date.now();
-
-    // Find the nearest show whose date is in the future
     for (const s of shows) {
       if (!s.date) continue;
       const t = new Date(s.date + 'T19:00:00+05:45').getTime();
       if (t > nowMs) {
-        targetDate = t;
-        upcomingShow = s;
-        break;
+        return { targetDate: t, show: s };
       }
     }
-
-    // Fallback: if no future date found, take the first show
-    if (!targetDate && shows.length > 0) {
-      upcomingShow = shows[0];
-      targetDate = new Date((shows[0].date || '2026-11-28') + 'T19:00:00+05:45').getTime();
-    }
+    return null;
   }
 
-  // Fallback to Nov 28, 2026 if no show is stored
-  if (!targetDate || isNaN(targetDate)) {
-    targetDate = new Date('2026-11-28T19:00:00+05:45').getTime();
-  }
-
-  // Update banner event text with the upcoming show's details
-  if (upcomingShow) {
-    const cdTitle = document.querySelector('.cd-event-title, .countdown-title');
-    const cdMeta = document.querySelector('.cd-event-meta, .countdown-venue');
-    if (cdTitle) cdTitle.textContent = upcomingShow.title;
-    if (cdMeta) {
-      cdMeta.textContent = `${upcomingShow.month || 'NOV'} ${upcomingShow.day || '28'}, ${upcomingShow.year || '2026'} • ${upcomingShow.venue || 'Kathmandu, Nepal'}`;
-    }
-  }
+  let nextInfo = findNextShow();
 
   function update() {
     const now = Date.now();
-    const distance = targetDate - now;
 
-    if (distance <= 0) {
+    // If no future show or current show just expired, try finding the next upcoming one
+    if (!nextInfo || nextInfo.targetDate <= now) {
+      nextInfo = findNextShow();
+    }
+
+    const cdBadge = document.querySelector('.cd-banner-info .section-tag');
+    const cdTitle = document.querySelector('.cd-event-title, .countdown-title');
+    const cdMeta = document.querySelector('.cd-event-meta, .countdown-venue');
+
+    if (!nextInfo) {
+      // If all shows have passed and none are scheduled
+      if (cdBadge) cdBadge.textContent = 'STAY TUNED';
+      if (cdTitle) cdTitle.textContent = 'New Concert Tour Dates Announcing Soon';
+      if (cdMeta) cdMeta.textContent = 'Follow @maharjan.prabhat on Instagram for upcoming live announcements';
       if (daysEl) daysEl.textContent = '00';
       if (hoursEl) hoursEl.textContent = '00';
       if (minsEl) minsEl.textContent = '00';
@@ -183,6 +170,14 @@ function initConcertCountdown() {
       return;
     }
 
+    // Update banner texts with active upcoming show
+    if (cdBadge) cdBadge.textContent = 'NEXT LIVE SHOW';
+    if (cdTitle) cdTitle.textContent = nextInfo.show.title;
+    if (cdMeta) {
+      cdMeta.textContent = `${nextInfo.show.month || 'NOV'} ${nextInfo.show.day || '28'}, ${nextInfo.show.year || '2026'} • ${nextInfo.show.venue || 'Kathmandu, Nepal'}`;
+    }
+
+    const distance = nextInfo.targetDate - now;
     const days = Math.floor(distance / (1000 * 60 * 60 * 24));
     const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -206,15 +201,38 @@ function initShowsFilter() {
   if (showsContainers.length > 0 && window.cmsStore && window.cmsStore.getShows) {
     const shows = window.cmsStore.getShows();
     if (shows && shows.length > 0) {
-      const showsHTML = shows.map(s => `
-        <div class="show-card" data-category="${s.category || 'concert'}">
+      const nowMs = Date.now();
+      const showsHTML = shows.map(s => {
+        const eventTime = s.date ? new Date(s.date + 'T23:59:59+05:45').getTime() : 0;
+        const isPast = eventTime > 0 && eventTime < nowMs;
+
+        let badgeClass = 'status-available';
+        let badgeText = s.status || 'Tickets Available';
+        let buttonText = s.ticketText || 'Reserve Seats';
+        let buttonAttr = '';
+
+        if (isPast) {
+          badgeClass = 'status-sold';
+          badgeText = 'Concert Concluded';
+          buttonText = 'Concert Past';
+          buttonAttr = 'style="opacity: 0.6; cursor: not-allowed;" disabled';
+        } else if (s.status === 'Sold Out') {
+          badgeClass = 'status-sold';
+          buttonText = 'Sold Out';
+          buttonAttr = 'style="opacity: 0.6; cursor: not-allowed;" disabled';
+        } else if (s.status === 'Limited Seats' || s.status === 'Selling Fast') {
+          badgeClass = 'status-selling';
+        }
+
+        return `
+        <div class="show-card ${isPast ? 'show-card-past' : ''}" data-category="${s.category || 'concert'}">
           <div class="show-date-badge">
             <span class="show-month">${s.month || 'NOV'}</span>
             <span class="show-day">${s.day || '01'}</span>
             <span class="show-year">${s.year || '2026'}</span>
           </div>
           <div class="show-details">
-            <div class="show-status-badge ${s.status === 'Sold Out' ? 'status-sold' : s.status === 'Limited Seats' ? 'status-selling' : 'status-available'}">${s.status || 'Tickets Available'}</div>
+            <div class="show-status-badge ${badgeClass}">${badgeText}</div>
             <h3 class="show-title">${s.title}</h3>
             <div class="show-venue">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
@@ -223,26 +241,16 @@ function initShowsFilter() {
             <p class="show-desc">${s.description || ''}</p>
           </div>
           <div class="show-actions">
-            <button class="btn btn-primary btn-sm btn-ticket" data-show="${s.title} (${s.month} ${s.day}, ${s.year})">${s.ticketText || 'Reserve Seats'}</button>
+            <button class="btn btn-primary btn-sm btn-ticket" data-show="${s.title} (${s.month} ${s.day}, ${s.year})" ${buttonAttr}>${buttonText}</button>
             <a href="${s.mapUrl || 'https://maps.google.com'}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Venue Map</a>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       showsContainers.forEach(container => {
         container.innerHTML = showsHTML;
       });
-
-      // Update countdown banner event info with next upcoming show
-      const nextShow = shows[0];
-      const cdTitle = document.querySelector('.cd-event-title');
-      const cdMeta = document.querySelector('.cd-event-meta');
-      if (nextShow && cdTitle) {
-        cdTitle.textContent = nextShow.title;
-      }
-      if (nextShow && cdMeta) {
-        cdMeta.textContent = `${nextShow.month || 'NOV'} ${nextShow.day || '18'}, ${nextShow.year || '2026'} • ${nextShow.venue}`;
-      }
     }
   }
 
