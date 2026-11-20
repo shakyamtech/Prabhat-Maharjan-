@@ -68,12 +68,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Click-to-fill default pin badge
-  const defaultPinBadge = document.getElementById('default-pin-badge');
-  if (defaultPinBadge) {
-    defaultPinBadge.addEventListener('click', () => {
-      adminPinInput.value = 'prabhat@studio2026';
-      adminPinInput.focus();
+  // Forgot Password Recovery Handler
+  const btnForgotPwd = document.getElementById('btn-forgot-pwd');
+  if (btnForgotPwd) {
+    btnForgotPwd.addEventListener('click', (e) => {
+      e.preventDefault();
+      const recoveryInput = prompt(
+        "🔐 Studio Password Recovery\n\nPlease enter Prabhat's registered studio email (prabhatmaharjan97@gmail.com) or phone number (9840515079) to reset the password:"
+      );
+      if (!recoveryInput) return;
+
+      const cleanInput = recoveryInput.trim().toLowerCase().replace(/[\s\-\+]/g, '');
+      const validEmail = 'prabhatmaharjan97@gmail.com';
+      const validPhone = '9840515079';
+      const validPhoneInt = '9779840515079';
+
+      if (cleanInput === validEmail || cleanInput === validPhone || cleanInput === validPhoneInt) {
+        const settings = store.getSettings();
+        settings.adminPin = 'studio@2026';
+        store.saveSettings(settings);
+        alert("✅ Security Verification Successful!\n\nYour Admin Password has been reset to default: studio@2026\nYou can now log in and set a custom password anytime from Studio Settings.");
+        adminPinInput.value = 'studio@2026';
+        adminPinInput.focus();
+      } else {
+        alert("❌ Verification Failed!\n\nThe credentials entered do not match Prabhat Maharjan's studio records.\nPlease check the number/email or contact directly.");
+      }
     });
   }
 

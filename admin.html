@@ -762,7 +762,10 @@
 
       <form id="auth-form" onsubmit="event.preventDefault();">
         <div class="auth-input-group">
-          <label class="auth-label" for="admin-pin-input">Studio Security PIN / Password</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label class="auth-label" for="admin-pin-input" style="margin-bottom: 0;">Studio Security PIN / Password</label>
+            <a href="#" id="btn-forgot-pwd" style="color: var(--admin-gold); font-size: 0.82rem; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Forgot Password?</a>
+          </div>
           <div style="position: relative;">
             <input type="password" id="admin-pin-input" class="auth-input" placeholder="Enter password" autofocus required style="padding-right: 42px;">
             <button type="button" id="btn-toggle-pwd" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; padding: 4px;" title="Show/Hide Password">👁️</button>
@@ -776,8 +779,7 @@
       </form>
 
       <div class="auth-hint">
-        Official Studio CMS for Managing Shows, Appointments, Audio & Gallery.<br>
-        Default PIN: <code id="default-pin-badge" style="cursor: pointer; text-decoration: underline;" title="Click to auto-fill">studio@2026</code> (click to auto-fill)
+        Official Studio CMS for Managing Shows, Appointments, Audio & Gallery.
       </div>
     </div>
   </div>
