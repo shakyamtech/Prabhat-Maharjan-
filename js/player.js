@@ -250,6 +250,7 @@ class AudioEngine {
     if (track.audioUrl) {
       if (!this.audioEl) {
         this.audioEl = new Audio();
+        this.audioEl.crossOrigin = 'anonymous';
         this.audioEl.preload = 'auto';
         this.audioEl.addEventListener('ended', () => this.nextTrack());
         this.audioEl.addEventListener('timeupdate', () => {
@@ -268,9 +269,14 @@ class AudioEngine {
           }
         });
       }
-      // Note: No crossOrigin='anonymous' to allow direct smooth playback from any remote bucket
-      if (this.audioEl.src !== track.audioUrl) {
-        this.audioEl.src = track.audioUrl;
+
+      // Stream via Cloudflare edge proxy to guarantee full CORS for real-time Web Audio analysis
+      const streamSrc = track.audioUrl.startsWith('http')
+        ? `/api/stream?url=${encodeURIComponent(track.audioUrl)}`
+        : track.audioUrl;
+
+      if (this.audioEl.src !== streamSrc && !this.audioEl.src.includes(encodeURIComponent(track.audioUrl))) {
+        this.audioEl.src = streamSrc;
         this.audioEl.load();
       }
     } else {
@@ -301,6 +307,7 @@ class AudioEngine {
 
   play() {
     const track = this.tracks[this.currentTrackIndex];
+    this.initAudioContext();
     this.isPlaying = true;
     if (this.playBtn) {
       this.playBtn.innerHTML = `
@@ -316,19 +323,20 @@ class AudioEngine {
     });
 
     if (track.audioUrl && this.audioEl) {
-      // Direct high-fidelity HTML5 audio streaming
-      if (this.volumeSlider) {
-        this.audioEl.volume = parseFloat(this.volumeSlider.value);
+      // Route real audio through Web Audio Analyser for live 100% synced spectrum!
+      if (!this.audioElSource && this.ctx) {
+        try {
+          this.audioElSource = this.ctx.createMediaElementSource(this.audioEl);
+          this.audioElSource.connect(this.gainNode);
+        } catch (e) {
+          console.warn('AudioSource connection:', e);
+        }
       }
       this.stopAudioLoop();
-      const playPromise = this.audioEl.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.warn('Real audio play deferred:', err);
-        });
-      }
+      this.audioEl.play().catch(err => {
+        console.warn('Real audio play deferred:', err);
+      });
     } else {
-      this.initAudioContext();
       this.startAudioLoop();
     }
     this.startTimer();
@@ -598,18 +606,8 @@ class AudioEngine {
       const bufferLength = this.analyser ? this.analyser.frequencyBinCount : 32;
       const dataArray = new Uint8Array(bufferLength);
 
-      const currentTrack = this.tracks[this.currentTrackIndex];
-      if (this.isPlaying) {
-        if (currentTrack && currentTrack.audioUrl) {
-          // Dynamic lively visualizer waves for real audio stream
-          const time = Date.now() * 0.007;
-          for (let i = 0; i < bufferLength; i++) {
-            const wave = Math.sin(time + i * 0.4) * 60 + Math.cos(time * 0.8 + i * 0.25) * 45 + 100;
-            dataArray[i] = Math.min(240, Math.max(25, wave));
-          }
-        } else if (this.analyser) {
-          this.analyser.getByteFrequencyData(dataArray);
-        }
+      if (this.isPlaying && this.analyser) {
+        this.analyser.getByteFrequencyData(dataArray);
       } else {
         // Idle gentle animation
         const time = Date.now() * 0.002;
