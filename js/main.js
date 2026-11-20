@@ -463,7 +463,7 @@ function initFaqAccordion() {
 }
 
 /* --------------------------------------------------------------------------
-   CONTACT FORM SUBMISSION
+   CONTACT FORM SUBMISSION (DUAL: SAVED TO ADMIN CRM + DIRECT WHATSAPP)
 -------------------------------------------------------------------------- */
 function initContactForm() {
   const form = document.getElementById('general-contact-form');
@@ -471,11 +471,43 @@ function initContactForm() {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const nameInput = form.querySelector('[name="name"]');
-    const name = nameInput ? nameInput.value : 'Friend';
+    const name = (form.querySelector('[name="name"]')?.value || 'Client').trim();
+    const contact = (form.querySelector('[name="contact"]')?.value || '').trim();
+    const message = (form.querySelector('[name="message"]')?.value || '').trim();
 
-    showToast(`Thank you ${name}! Your inquiry has been sent to Prabhat Maharjan.`);
+    // 1. Save directly into Admin CMS Bookings CRM
+    const newInquiry = {
+      id: `INQ-${Math.floor(10000 + Math.random() * 90000)}`,
+      clientName: name,
+      email: contact.includes('@') ? contact : '',
+      phone: !contact.includes('@') ? contact : '',
+      service: 'Custom Project Inquiry',
+      date: new Date().toISOString().split('T')[0],
+      timeSlot: 'Flexible / In Discussion',
+      location: 'Studio / Online',
+      notes: message || 'Direct inquiry submitted from homepage contact form.',
+      status: 'Pending',
+      createdAt: new Date().toISOString()
+    };
+
+    if (window.cmsStore && window.cmsStore.addBooking) {
+      window.cmsStore.addBooking(newInquiry);
+    }
+
+    // 2. Format WhatsApp direct chat to Prabhat
+    const s = window.cmsStore ? window.cmsStore.getSettings() : {};
+    const targetPhone = (s.whatsappNumber || '9779840515079').replace(/[\s\-\+]/g, '');
+    const waText = encodeURIComponent(
+      `Hello Prabhat ji,\n\nI am contacting you from your official website (Custom Musical Project):\n- Name: ${name}\n- Contact: ${contact}\n- Message: ${message || 'I would like to discuss a musical project.'}`
+    );
+    const waUrl = `https://wa.me/${targetPhone}?text=${waText}`;
+
+    showToast(`Thank you ${name}! Opening WhatsApp to message Prabhat directly...`);
     form.reset();
+
+    setTimeout(() => {
+      window.open(waUrl, '_blank');
+    }, 800);
   });
 }
 
