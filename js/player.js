@@ -99,25 +99,47 @@ class AudioEngine {
       this.analyser.smoothingTimeConstant = 0.85;
 
       this.gainNode = this.ctx.createGain();
-      this.gainNode.gain.value = 0.6;
+      this.gainNode.gain.value = 0.7;
 
-      // Mastering chain (Compressor + High Shelf EQ)
+      // Studio Mastering Chain (Biquad EQ + Analog Compressor + Limiter Gain)
+      // 1. Warm Analog Low-end (100Hz low shelf)
+      this.masteringBass = this.ctx.createBiquadFilter();
+      this.masteringBass.type = 'lowshelf';
+      this.masteringBass.frequency.setValueAtTime(100, this.ctx.currentTime);
+      this.masteringBass.gain.setValueAtTime(this.isMasteredMode ? 5.5 : -4.0, this.ctx.currentTime);
+
+      // 2. Vocal & Instrument Presence (3200Hz peak)
+      this.masteringPresence = this.ctx.createBiquadFilter();
+      this.masteringPresence.type = 'peaking';
+      this.masteringPresence.frequency.setValueAtTime(3200, this.ctx.currentTime);
+      this.masteringPresence.Q.setValueAtTime(1.2, this.ctx.currentTime);
+      this.masteringPresence.gain.setValueAtTime(this.isMasteredMode ? 4.5 : -3.0, this.ctx.currentTime);
+
+      // 3. High Air Sheen (9000Hz high shelf)
+      this.masteringAir = this.ctx.createBiquadFilter();
+      this.masteringAir.type = 'highshelf';
+      this.masteringAir.frequency.setValueAtTime(9000, this.ctx.currentTime);
+      this.masteringAir.gain.setValueAtTime(this.isMasteredMode ? 6.5 : -6.0, this.ctx.currentTime);
+
+      // 4. Analog Studio Glue Compressor
       this.masteringCompressor = this.ctx.createDynamicsCompressor();
-      this.masteringCompressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+      this.masteringCompressor.threshold.setValueAtTime(this.isMasteredMode ? -22 : 0, this.ctx.currentTime);
       this.masteringCompressor.knee.setValueAtTime(12, this.ctx.currentTime);
-      this.masteringCompressor.ratio.setValueAtTime(3.5, this.ctx.currentTime);
+      this.masteringCompressor.ratio.setValueAtTime(this.isMasteredMode ? 4.5 : 1.0, this.ctx.currentTime);
       this.masteringCompressor.attack.setValueAtTime(0.015, this.ctx.currentTime);
       this.masteringCompressor.release.setValueAtTime(0.2, this.ctx.currentTime);
 
-      this.masteringFilter = this.ctx.createBiquadFilter();
-      this.masteringFilter.type = 'highshelf';
-      this.masteringFilter.frequency.setValueAtTime(8000, this.ctx.currentTime);
-      this.masteringFilter.gain.setValueAtTime(this.isMasteredMode ? 3.5 : 0, this.ctx.currentTime);
+      // 5. Commercial Loudness / Mastering Limiter Gain
+      this.masteringGain = this.ctx.createGain();
+      this.masteringGain.gain.setValueAtTime(this.isMasteredMode ? 1.15 : 0.60, this.ctx.currentTime);
 
-      // Connect: Sources -> Gain -> Analyser -> Filter -> Compressor -> Destination
-      this.gainNode.connect(this.masteringFilter);
-      this.masteringFilter.connect(this.masteringCompressor);
-      this.masteringCompressor.connect(this.analyser);
+      // Connect: Sources -> Gain -> Bass -> Presence -> Air -> Compressor -> MasteringGain -> Analyser -> Destination
+      this.gainNode.connect(this.masteringBass);
+      this.masteringBass.connect(this.masteringPresence);
+      this.masteringPresence.connect(this.masteringAir);
+      this.masteringAir.connect(this.masteringCompressor);
+      this.masteringCompressor.connect(this.masteringGain);
+      this.masteringGain.connect(this.analyser);
       this.analyser.connect(this.ctx.destination);
     }
 
@@ -173,11 +195,29 @@ class AudioEngine {
       });
     }
 
-    // A/B Master switch
+    // A/B Master switch and Interactive Comparison Slider
     const abToggle = document.getElementById('ab-master-toggle');
+    const abSlider = document.getElementById('mastering-slider-range');
+    const afterLayer = document.getElementById('mastering-after-layer');
+
     if (abToggle) {
       abToggle.addEventListener('change', (e) => {
-        this.setMasteringMode(e.target.checked);
+        const isMastered = e.target.checked;
+        if (abSlider) abSlider.value = isMastered ? 100 : 0;
+        if (afterLayer) afterLayer.style.width = isMastered ? '100%' : '0%';
+        this.setMasteringMode(isMastered ? 1.0 : 0.0);
+      });
+    }
+
+    if (abSlider) {
+      abSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (afterLayer) afterLayer.style.width = `${val}%`;
+        const normalized = val / 100;
+        if (abToggle) {
+          abToggle.checked = normalized >= 0.5;
+        }
+        this.setMasteringMode(normalized);
       });
     }
 
@@ -185,25 +225,41 @@ class AudioEngine {
     this.loadTrack(0, false);
   }
 
-  setMasteringMode(isMastered) {
-    this.isMasteredMode = isMastered;
+  setMasteringMode(value) {
+    if (!this.ctx) this.initAudioContext();
+
+    // Accepts boolean (true/false) or float (0.0 to 1.0)
+    const factor = typeof value === 'boolean' ? (value ? 1.0 : 0.0) : Math.max(0, Math.min(1, value));
+    this.isMasteredMode = factor >= 0.5;
+
     const label = document.getElementById('ab-status-text');
     if (label) {
-      label.textContent = isMastered ? 'Mastered Audio (Pro Studio)' : 'Raw Mix (Pre-Mastering)';
-      label.style.color = isMastered ? '#f59e0b' : '#94a3b8';
+      label.textContent = factor >= 0.5 ? 'Mastered Audio (Pro Studio)' : 'Raw Mix (Pre-Mastering)';
+      label.style.color = factor >= 0.5 ? '#f59e0b' : '#94a3b8';
     }
 
-    if (this.masteringFilter && this.ctx) {
+    if (this.ctx && this.masteringBass && this.masteringPresence && this.masteringAir && this.masteringCompressor && this.masteringGain) {
       const now = this.ctx.currentTime;
-      if (isMastered) {
-        this.masteringFilter.gain.setTargetAtTime(3.8, now, 0.05);
-        this.masteringCompressor.ratio.setTargetAtTime(3.8, now, 0.05);
-        if (this.gainNode) this.gainNode.gain.setTargetAtTime(0.7, now, 0.05);
-      } else {
-        this.masteringFilter.gain.setTargetAtTime(-1.5, now, 0.05);
-        this.masteringCompressor.ratio.setTargetAtTime(1.2, now, 0.05);
-        if (this.gainNode) this.gainNode.gain.setTargetAtTime(0.45, now, 0.05);
-      }
+      // Interpolate audible mastering parameters in real-time:
+      // Bass warmth: -4.0dB (flat thin raw) -> +5.5dB (deep analogue warmth)
+      const bassGain = -4.0 + factor * 9.5;
+      // Presence: -3.0dB (muffled) -> +4.5dB (in-your-face crisp vocal presence)
+      const presenceGain = -3.0 + factor * 7.5;
+      // Air sheen: -6.0dB (dark dull) -> +6.5dB (silky analogue high-end)
+      const airGain = -6.0 + factor * 12.5;
+      // Compression threshold: 0dB (none) -> -22dB (tight punchy glue)
+      const compThresh = 0 - factor * 22;
+      // Compression ratio: 1.0 (uncompressed) -> 4.5 (pro radio loudness)
+      const compRatio = 1.0 + factor * 3.5;
+      // Master volume boost: 0.60 (quiet raw) -> 1.15 (commercial loudness)
+      const masterVol = 0.60 + factor * 0.55;
+
+      this.masteringBass.gain.setTargetAtTime(bassGain, now, 0.03);
+      this.masteringPresence.gain.setTargetAtTime(presenceGain, now, 0.03);
+      this.masteringAir.gain.setTargetAtTime(airGain, now, 0.03);
+      this.masteringCompressor.threshold.setTargetAtTime(compThresh, now, 0.03);
+      this.masteringCompressor.ratio.setTargetAtTime(compRatio, now, 0.03);
+      this.masteringGain.gain.setTargetAtTime(masterVol, now, 0.03);
     }
   }
 
