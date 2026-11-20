@@ -461,6 +461,12 @@ class CMSStore {
     return tracks;
   }
 
+  updateTrack(id, updatedFields) {
+    const tracks = this.getTracks().map(t => t.id === id ? { ...t, ...updatedFields } : t);
+    localStorage.setItem(CMS_STORAGE_KEYS.TRACKS, JSON.stringify(tracks));
+    return tracks;
+  }
+
   // Gallery
   getGallery() {
     try {

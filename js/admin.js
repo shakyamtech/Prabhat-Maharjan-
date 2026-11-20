@@ -421,9 +421,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 8px;">Key: ${t.key || 'N/A'} • ${t.bpm ? t.bpm + ' BPM' : ''}</div>
             <p style="color: #64748b; font-size: 0.8rem; line-height: 1.4;">${t.description || ''}</p>
           </div>
-          <div class="item-card-footer">
-            <a href="index.html#audio-player" target="_blank" style="color: var(--admin-gold); font-size: 0.8rem; text-decoration: none;">Test in Player ↗</a>
-            <button onclick="deleteTrack('${t.id}')" class="btn btn-secondary btn-sm" style="color: #ef4444; padding: 4px 10px;">Remove</button>
+          <div class="item-card-footer" style="display: flex; gap: 6px; align-items: center; justify-content: space-between;">
+            <button onclick="triggerAudioReplace('${t.id}')" class="btn btn-primary btn-sm" id="btn-rep-${t.id}" style="padding: 5px 12px; font-size: 0.78rem; background: ${t.audioUrl ? '#059669' : '#d97706'}; border: none; font-weight: 600;">
+              🎵 ${t.audioUrl ? 'Change Audio' : 'Upload Audio'}
+            </button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <a href="index.html#audio-player" target="_blank" style="color: var(--admin-gold); font-size: 0.8rem; text-decoration: none;">Test ↗</a>
+              <button onclick="deleteTrack('${t.id}')" class="btn btn-secondary btn-sm" style="color: #ef4444; padding: 4px 8px;">✕</button>
+            </div>
           </div>
         </div>
       `;
@@ -438,6 +443,53 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Track removed from playlist.');
     }
   };
+
+  // 1-Click Replace Audio directly on any existing track
+  let replaceTargetTrackId = null;
+  const replaceAudioInput = document.createElement('input');
+  replaceAudioInput.type = 'file';
+  replaceAudioInput.accept = '.mp3,.wav,.ogg,audio/*';
+  replaceAudioInput.style.display = 'none';
+  document.body.appendChild(replaceAudioInput);
+
+  window.triggerAudioReplace = (trackId) => {
+    if (!window.FIREBASE_READY) {
+      alert('Firebase Storage is not configured. Please verify js/firebase-config.js');
+      return;
+    }
+    replaceTargetTrackId = trackId;
+    replaceAudioInput.value = '';
+    replaceAudioInput.click();
+  };
+
+  replaceAudioInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !replaceTargetTrackId) return;
+
+    const trackId = replaceTargetTrackId;
+    const btn = document.getElementById(`btn-rep-${trackId}`);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Uploading 0%...';
+    }
+    showToast(`Uploading audio for track (${file.name})...`);
+
+    try {
+      const audioUrl = await window.uploadAudioToFirebase(file, trackId, (pct) => {
+        if (btn) btn.textContent = `⏳ ${pct}%`;
+      });
+      store.updateTrack(trackId, { audioUrl });
+      renderTracks();
+      showToast('🎵 Audio replaced successfully! Test in player.');
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed: ' + err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🎵 Upload Audio';
+      }
+    }
+  });
 
   // Firebase upload UI setup
   const audioFileInput = document.getElementById('track-audio-file');
