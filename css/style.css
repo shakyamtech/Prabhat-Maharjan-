@@ -2663,6 +2663,66 @@ textarea.custom-input {
   .footer-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Interactive A/B Comparison Card Mobile Optimization */
+  .ab-comparison-card {
+    padding: 20px 16px;
+  }
+
+  .ab-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .switch-container {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .split-visual-container {
+    height: 190px;
+  }
+
+  .split-badge {
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-cta-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-cta-group .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-floating-badge {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .show-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .show-date-box {
+    margin: 0 auto;
+  }
+
+  .show-actions {
+    justify-content: center;
+  }
+
+  .player-main-card {
+    padding: 16px;
+  }
 }
 
 /* ==========================================================================
