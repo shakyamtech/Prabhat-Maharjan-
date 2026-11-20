@@ -440,10 +440,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 8px;">Key: ${t.key || 'N/A'} • ${t.bpm ? t.bpm + ' BPM' : ''}</div>
             <p style="color: #64748b; font-size: 0.8rem; line-height: 1.4;">${t.description || ''}</p>
           </div>
-          <div class="item-card-footer" style="display: flex; gap: 6px; align-items: center; justify-content: space-between;">
-            <button onclick="triggerAudioReplace('${t.id}')" class="btn btn-primary btn-sm" id="btn-rep-${t.id}" style="padding: 5px 12px; font-size: 0.78rem; background: ${t.audioUrl ? '#059669' : '#d97706'}; border: none; font-weight: 600;">
-              🎵 ${t.audioUrl ? 'Change Audio' : 'Upload Audio'}
-            </button>
+          <div class="item-card-footer" style="display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <button onclick="triggerAudioReplace('${t.id}')" class="btn btn-primary btn-sm" id="btn-rep-${t.id}" style="padding: 5px 10px; font-size: 0.76rem; background: ${t.audioUrl ? '#059669' : '#d97706'}; border: none; font-weight: 600;">
+                🎵 ${t.audioUrl ? 'Change Audio' : 'Upload Audio'}
+              </button>
+              <button onclick="triggerCoverReplace('${t.id}')" class="btn btn-secondary btn-sm" id="btn-cov-${t.id}" style="padding: 5px 10px; font-size: 0.76rem; border: 1px solid var(--admin-border);" title="Browse & Change Album Cover">
+                🖼️ Cover
+              </button>
+            </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <a href="index.html#audio-player" target="_blank" style="color: var(--admin-gold); font-size: 0.8rem; text-decoration: none;">Test ↗</a>
               <button onclick="deleteTrack('${t.id}')" class="btn btn-secondary btn-sm" style="color: #ef4444; padding: 4px 8px;">✕</button>
@@ -510,61 +515,152 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Firebase upload UI setup
-  const audioFileInput = document.getElementById('track-audio-file');
-  const firebaseBadge = document.getElementById('firebase-status-badge');
-  if (firebaseBadge) {
-    firebaseBadge.textContent = window.FIREBASE_READY ? '🟢 Firebase Connected' : '⚪ Firebase not configured';
-    firebaseBadge.style.color = window.FIREBASE_READY ? '#22c55e' : '#64748b';
-  }
+  // 1-Click Replace Cover Art directly on any existing track
+  let replaceTargetCoverTrackId = null;
+  const replaceCoverInput = document.createElement('input');
+  replaceCoverInput.type = 'file';
+  replaceCoverInput.accept = 'image/png,image/jpeg,image/jpg,image/webp';
+  replaceCoverInput.style.display = 'none';
+  document.body.appendChild(replaceCoverInput);
 
-  if (audioFileInput) {
-    audioFileInput.addEventListener('change', (e) => {
+  window.triggerCoverReplace = (trackId) => {
+    replaceTargetCoverTrackId = trackId;
+    replaceCoverInput.value = '';
+    replaceCoverInput.click();
+  };
+
+  replaceCoverInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !replaceTargetCoverTrackId) return;
+
+    const trackId = replaceTargetCoverTrackId;
+    const btn = document.getElementById(`btn-cov-${trackId}`);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Uploading...';
+    }
+    showToast(`Uploading cover image for track...`);
+
+    try {
+      let coverUrl = '';
+      if (window.FIREBASE_READY && window.uploadCoverToFirebase) {
+        coverUrl = await window.uploadCoverToFirebase(file, trackId);
+      } else {
+        coverUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+      store.updateTrack(trackId, { cover: coverUrl });
+      renderTracks();
+      showToast('🖼️ Cover art updated successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Cover upload failed: ' + err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🖼️ Cover';
+      }
+    }
+  });
+
+  // Modal Track: Audio file select feedback
+  const trackAudioFileInput = document.getElementById('track-audio-file');
+  const trackAudioFilename = document.getElementById('track-audio-filename');
+  if (trackAudioFileInput) {
+    trackAudioFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      document.getElementById('upload-idle-state').style.display = 'none';
-      document.getElementById('upload-file-selected').style.display = 'block';
-      document.getElementById('selected-file-name').textContent = file.name;
-      document.getElementById('upload-done-msg').style.display = 'none';
-      document.getElementById('upload-err-msg').style.display = 'none';
-      document.getElementById('track-audio-url').value = '';
+      if (file && trackAudioFilename) {
+        trackAudioFilename.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+        trackAudioFilename.style.color = '#22c55e';
+      }
     });
   }
 
+  // Modal Track: Cover Art Local Browse & Auto-Upload
+  const trackCoverFileInput = document.getElementById('track-cover-file');
+  const trackCoverPreview = document.getElementById('track-cover-preview');
+  const trackCoverStatus = document.getElementById('track-cover-status');
+  const trackCoverInput = document.getElementById('track-cover');
+
+  if (trackCoverFileInput) {
+    trackCoverFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // 1. Instant local preview
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (trackCoverPreview) trackCoverPreview.src = ev.target.result;
+        if (trackCoverInput) trackCoverInput.value = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+
+      // 2. Upload to Firebase Cloud Storage if connected
+      if (window.FIREBASE_READY && window.uploadCoverToFirebase) {
+        if (trackCoverStatus) {
+          trackCoverStatus.textContent = '⏳ Uploading cover...';
+          trackCoverStatus.style.color = 'var(--admin-gold)';
+        }
+        try {
+          const cloudUrl = await window.uploadCoverToFirebase(file, `cover_${Date.now()}`);
+          if (trackCoverInput) trackCoverInput.value = cloudUrl;
+          if (trackCoverStatus) {
+            trackCoverStatus.textContent = '🟢 Cloud cover saved!';
+            trackCoverStatus.style.color = '#22c55e';
+          }
+          showToast('Cover art uploaded to Cloud Storage!');
+        } catch (err) {
+          console.warn('Cover upload fallback:', err);
+          if (trackCoverStatus) {
+            trackCoverStatus.textContent = '🟡 Local preview saved';
+            trackCoverStatus.style.color = '#eab308';
+          }
+        }
+      } else {
+        if (trackCoverStatus) {
+          trackCoverStatus.textContent = '🟢 Local image selected';
+          trackCoverStatus.style.color = '#22c55e';
+        }
+      }
+    });
+  }
+
+  // Form: Add New Track Submit
   document.getElementById('form-add-track').addEventListener('submit', async (e) => {
     e.preventDefault();
     const trackId = `track-${Date.now()}`;
     const saveBtn = document.getElementById('btn-save-track');
-    const audioFile = audioFileInput && audioFileInput.files[0];
+    const audioFile = trackAudioFileInput && trackAudioFileInput.files[0];
+    const progressWrap = document.getElementById('modal-audio-progress-wrap');
+    const progressBar = document.getElementById('modal-audio-progress-bar');
+    const progressPct = document.getElementById('modal-audio-pct');
 
     let audioUrl = '';
 
     // Upload audio file if selected
     if (audioFile) {
-      if (!window.FIREBASE_READY) {
-        document.getElementById('upload-err-msg').style.display = 'block';
-        document.getElementById('upload-err-msg').textContent = '⚠ Firebase not configured. Please fill in js/firebase-config.js with your Firebase credentials.';
-        return;
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Uploading Audio...';
       }
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Uploading...';
-      document.getElementById('upload-progress-wrap').style.display = 'block';
-      document.getElementById('upload-err-msg').style.display = 'none';
+      if (progressWrap) progressWrap.style.display = 'block';
 
       try {
-        audioUrl = await window.uploadAudioToFirebase(audioFile, trackId, (pct) => {
-          document.getElementById('upload-progress-bar').style.width = pct + '%';
-          document.getElementById('upload-pct').textContent = pct + '%';
-        });
-        document.getElementById('upload-progress-wrap').style.display = 'none';
-        document.getElementById('upload-done-msg').style.display = 'block';
+        if (window.FIREBASE_READY && window.uploadAudioToFirebase) {
+          audioUrl = await window.uploadAudioToFirebase(audioFile, trackId, (pct) => {
+            if (progressBar) progressBar.style.width = pct + '%';
+            if (progressPct) progressPct.textContent = pct + '%';
+          });
+        }
       } catch (err) {
-        document.getElementById('upload-progress-wrap').style.display = 'none';
-        document.getElementById('upload-err-msg').style.display = 'block';
-        document.getElementById('upload-err-msg').textContent = '❌ Upload failed: ' + err.message;
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Track';
+        console.error('Audio upload error:', err);
+        alert('Audio upload failed: ' + err.message);
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Track';
+        }
         return;
       }
     }
@@ -591,15 +687,81 @@ document.addEventListener('DOMContentLoaded', () => {
     store.addTrack(newTrack);
     document.getElementById('modal-track').classList.remove('open');
     document.getElementById('form-add-track').reset();
-    if (audioFileInput) audioFileInput.value = '';
-    document.getElementById('upload-idle-state').style.display = 'block';
-    document.getElementById('upload-file-selected').style.display = 'none';
-    document.getElementById('upload-done-msg').style.display = 'none';
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Track'; }
+    if (trackAudioFileInput) trackAudioFileInput.value = '';
+    if (trackCoverFileInput) trackCoverFileInput.value = '';
+    if (trackAudioFilename) {
+      trackAudioFilename.textContent = 'Optional — select MP3 file from device';
+      trackAudioFilename.style.color = '#94a3b8';
+    }
+    if (trackCoverStatus) {
+      trackCoverStatus.textContent = 'Choose image from device';
+      trackCoverStatus.style.color = '#94a3b8';
+    }
+    if (trackCoverPreview) trackCoverPreview.src = 'assets/images/hero-artist.jpg';
+    if (progressWrap) progressWrap.style.display = 'none';
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Track';
+    }
+
     updateKPIs();
     renderTracks();
-    showToast(audioUrl ? '🎵 Track & audio uploaded successfully!' : 'New audio track added.');
+    showToast(audioUrl ? '🎵 Track & Audio uploaded successfully!' : 'New audio track added.');
   });
+
+  // Modal Gallery Photo: Local Browse & Upload
+  const photoFileInput = document.getElementById('photo-file-input');
+  const photoPreviewImg = document.getElementById('photo-preview-img');
+  const photoPlaceholder = document.getElementById('photo-preview-placeholder');
+  const photoUploadStatus = document.getElementById('photo-upload-status');
+  const photoSrcInput = document.getElementById('photo-src');
+
+  if (photoFileInput) {
+    photoFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // 1. Instant local preview
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (photoPreviewImg) {
+          photoPreviewImg.src = ev.target.result;
+          photoPreviewImg.style.display = 'block';
+        }
+        if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+        if (photoSrcInput) photoSrcInput.value = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+
+      // 2. Upload to Firebase Storage if available
+      if (window.FIREBASE_READY && window.uploadCoverToFirebase) {
+        if (photoUploadStatus) {
+          photoUploadStatus.textContent = '⏳ Uploading to cloud...';
+          photoUploadStatus.style.color = 'var(--admin-gold)';
+        }
+        try {
+          const cloudUrl = await window.uploadCoverToFirebase(file, `gallery_${Date.now()}`);
+          if (photoSrcInput) photoSrcInput.value = cloudUrl;
+          if (photoUploadStatus) {
+            photoUploadStatus.textContent = '🟢 Cloud photo saved!';
+            photoUploadStatus.style.color = '#22c55e';
+          }
+          showToast('Gallery photo uploaded to Cloud Storage!');
+        } catch (err) {
+          console.warn('Gallery upload fallback:', err);
+          if (photoUploadStatus) {
+            photoUploadStatus.textContent = '🟡 Local preview saved';
+            photoUploadStatus.style.color = '#eab308';
+          }
+        }
+      } else {
+        if (photoUploadStatus) {
+          photoUploadStatus.textContent = '🟢 Local image selected';
+          photoUploadStatus.style.color = '#22c55e';
+        }
+      }
+    });
+  }
 
   // 4. GALLERY MANAGER
   function renderGallery() {

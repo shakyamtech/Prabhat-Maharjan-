@@ -1204,9 +1204,42 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="track-cover">Cover Art Image Path</label>
-          <input type="text" id="track-cover" class="form-control" placeholder="assets/images/single-timi-kaha.jpg" value="assets/images/hero-artist.jpg">
+        <!-- Optional Audio File (MP3) -->
+        <div class="form-group" style="background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 14px;">
+          <label style="color: var(--admin-gold); font-weight: 700; margin-bottom: 6px; display: block;">🎵 Audio File (MP3 / WAV / OGG)</label>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label for="track-audio-file" class="btn btn-primary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              📁 Browse Audio File
+            </label>
+            <input type="file" id="track-audio-file" accept=".mp3,.wav,.ogg,audio/*" style="display: none;">
+            <span id="track-audio-filename" style="font-size: 0.82rem; color: #94a3b8;">Optional — select MP3 file from device</span>
+          </div>
+          <div id="modal-audio-progress-wrap" style="display: none; margin-top: 8px;">
+            <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">
+              <div id="modal-audio-progress-bar" style="width: 0%; height: 100%; background: var(--admin-gold); transition: width 0.2s;"></div>
+            </div>
+            <span id="modal-audio-pct" style="font-size: 0.75rem; color: var(--admin-gold);">0%</span>
+          </div>
+        </div>
+
+        <!-- Cover Art Image Upload (Local Browse + Preview) -->
+        <div class="form-group" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--admin-border); border-radius: 12px; padding: 14px;">
+          <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">🖼️ Cover Art Image (Album Art)</label>
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: #0f172a; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+              <img id="track-cover-preview" src="assets/images/hero-artist.jpg" alt="Cover Preview" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="flex-grow: 1;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+                <label for="track-cover-file" class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.84rem; background: rgba(255,255,255,0.08);">
+                  📁 Browse Cover Art
+                </label>
+                <input type="file" id="track-cover-file" accept="image/png,image/jpeg,image/jpg,image/webp" style="display: none;">
+                <span id="track-cover-status" style="font-size: 0.8rem; color: #94a3b8;">Choose image from device</span>
+              </div>
+              <input type="text" id="track-cover" class="form-control" placeholder="assets/images/single-timi-kaha.jpg" value="assets/images/hero-artist.jpg" style="font-size: 0.78rem; padding: 6px 10px;">
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -1216,7 +1249,7 @@
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
           <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Track</button>
+          <button type="submit" id="btn-save-track" class="btn btn-primary">Save Track</button>
         </div>
       </form>
     </div>
@@ -1231,9 +1264,24 @@
       </div>
 
       <form id="form-add-photo">
-        <div class="form-group">
-          <label for="photo-src">Image Path / URL</label>
-          <input type="text" id="photo-src" class="form-control" placeholder="assets/images/insta-1.jpg" required>
+        <div class="form-group" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--admin-border); border-radius: 12px; padding: 14px;">
+          <label style="color: #fff; font-weight: 600; margin-bottom: 8px; display: block;">📷 Gallery Photo File</label>
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 68px; height: 68px; border-radius: 10px; overflow: hidden; background: #0f172a; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              <img id="photo-preview-img" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+              <span id="photo-preview-placeholder" style="font-size: 1.6rem;">📸</span>
+            </div>
+            <div style="flex-grow: 1;">
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+                <label for="photo-file-input" class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.84rem; background: rgba(255,255,255,0.08);">
+                  📁 Browse Device Photo
+                </label>
+                <input type="file" id="photo-file-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display: none;">
+                <span id="photo-upload-status" style="font-size: 0.8rem; color: #94a3b8;">Choose image from device</span>
+              </div>
+              <input type="text" id="photo-src" class="form-control" placeholder="Image URL or assets/images/..." required style="font-size: 0.78rem; padding: 6px 10px;">
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
