@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 5. SETTINGS
   function loadSettings() {
     const s = store.getSettings();
-    document.getElementById('set-whatsapp').value = s.whatsappNumber || '9779841000000';
+    document.getElementById('set-whatsapp').value = s.whatsappNumber || '9779840515079';
     document.getElementById('set-email').value = s.studioEmail || 'prabhat.maharjan.music@gmail.com';
     document.getElementById('set-address').value = s.studioAddress || '';
     document.getElementById('set-instagram').value = s.instagramUrl || '';

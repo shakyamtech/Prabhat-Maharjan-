@@ -200,7 +200,7 @@ class BookingSystem {
       `Namaste Prabhat ji! 🎵\n\nI have scheduled an appointment on your official website:\n- Reference ID: ${data.id}\n- Name: ${data.clientName}\n- Service: ${data.service}\n- Date & Slot: ${this.formatDate(data.date)} (${data.timeSlot})\n- Format: ${data.location}\n- Contact: ${data.phone} / ${data.email}\n${data.notes ? '- Project Notes: ' + data.notes + '\n' : ''}\nLooking forward to collaborating with you!`
     );
 
-    const waNumber = (window.cmsStore && window.cmsStore.getSettings) ? window.cmsStore.getSettings().whatsappNumber : '9779841000000';
+    const waNumber = (window.cmsStore && window.cmsStore.getSettings) ? window.cmsStore.getSettings().whatsappNumber : '9779840515079';
     const waBtn = document.getElementById('btn-whatsapp-direct');
     if (waBtn) {
       waBtn.href = `https://wa.me/${waNumber}?text=${waText}`;

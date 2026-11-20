@@ -13,9 +13,9 @@ const CMS_STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS = {
-  whatsappNumber: '9779841000000',
+  whatsappNumber: '9779840515079',
   studioEmail: 'prabhat.maharjan.music@gmail.com',
-  studioPhone: '+977 9841 000000',
+  studioPhone: '+977 9840515079',
   studioAddress: 'Prabhat Maharjan Sound Studio, Patan, Kathmandu, Nepal',
   instagramUrl: 'https://www.instagram.com/maharjan.prabhat/',
   youtubeUrl: 'https://www.youtube.com',
