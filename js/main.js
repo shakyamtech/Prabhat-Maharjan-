@@ -123,8 +123,6 @@ function initNavbar() {
    CONCERT COUNTDOWN TIMER (Kathmandu Acoustic Echoes)
 -------------------------------------------------------------------------- */
 function initConcertCountdown() {
-  const targetDate = new Date('2026-11-18T20:00:00+05:45').getTime();
-
   const daysEl = document.getElementById('cd-days');
   const hoursEl = document.getElementById('cd-hours');
   const minsEl = document.getElementById('cd-mins');
@@ -132,11 +130,52 @@ function initConcertCountdown() {
 
   if (!daysEl) return;
 
+  // Dynamically determine the next upcoming concert target date from CMS store
+  let targetDate = null;
+  let upcomingShow = null;
+
+  if (window.cmsStore && window.cmsStore.getShows) {
+    const shows = window.cmsStore.getShows();
+    const nowMs = Date.now();
+
+    // Find the nearest show whose date is in the future
+    for (const s of shows) {
+      if (!s.date) continue;
+      const t = new Date(s.date + 'T19:00:00+05:45').getTime();
+      if (t > nowMs) {
+        targetDate = t;
+        upcomingShow = s;
+        break;
+      }
+    }
+
+    // Fallback: if no future date found, take the first show
+    if (!targetDate && shows.length > 0) {
+      upcomingShow = shows[0];
+      targetDate = new Date((shows[0].date || '2026-11-28') + 'T19:00:00+05:45').getTime();
+    }
+  }
+
+  // Fallback to Nov 28, 2026 if no show is stored
+  if (!targetDate || isNaN(targetDate)) {
+    targetDate = new Date('2026-11-28T19:00:00+05:45').getTime();
+  }
+
+  // Update banner event text with the upcoming show's details
+  if (upcomingShow) {
+    const cdTitle = document.querySelector('.cd-event-title, .countdown-title');
+    const cdMeta = document.querySelector('.cd-event-meta, .countdown-venue');
+    if (cdTitle) cdTitle.textContent = upcomingShow.title;
+    if (cdMeta) {
+      cdMeta.textContent = `${upcomingShow.month || 'NOV'} ${upcomingShow.day || '28'}, ${upcomingShow.year || '2026'} • ${upcomingShow.venue || 'Kathmandu, Nepal'}`;
+    }
+  }
+
   function update() {
-    const now = new Date().getTime();
+    const now = Date.now();
     const distance = targetDate - now;
 
-    if (distance < 0) {
+    if (distance <= 0) {
       if (daysEl) daysEl.textContent = '00';
       if (hoursEl) hoursEl.textContent = '00';
       if (minsEl) minsEl.textContent = '00';

@@ -26,9 +26,9 @@ const DEFAULT_SHOWS = [
   {
     id: 'show-1',
     title: 'Kathmandu Acoustic Echoes Gala',
-    date: '2026-11-18',
+    date: '2026-11-28',
     month: 'NOV',
-    day: '18',
+    day: '28',
     year: '2026',
     time: '6:30 PM - 9:30 PM',
     venue: 'Rastriya Nachghar (National Theatre), Jamal, Kathmandu',
@@ -417,7 +417,21 @@ class CMSStore {
   // Shows
   getShows() {
     try {
-      return JSON.parse(localStorage.getItem(CMS_STORAGE_KEYS.SHOWS)) || DEFAULT_SHOWS;
+      let shows = JSON.parse(localStorage.getItem(CMS_STORAGE_KEYS.SHOWS)) || DEFAULT_SHOWS;
+      // Auto-migrate any stale expired Nov 18 date to upcoming Nov 28
+      let updated = false;
+      shows = shows.map(s => {
+        if (s.date === '2026-11-18') {
+          s.date = '2026-11-28';
+          s.day = '28';
+          updated = true;
+        }
+        return s;
+      });
+      if (updated) {
+        localStorage.setItem(CMS_STORAGE_KEYS.SHOWS, JSON.stringify(shows));
+      }
+      return shows;
     } catch (e) {
       return DEFAULT_SHOWS;
     }
