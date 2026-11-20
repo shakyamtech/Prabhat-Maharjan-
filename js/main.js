@@ -5,6 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  initSettingsSync();
   initNavbar();
   initConcertCountdown();
   initShowsFilter();
@@ -15,6 +16,36 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactForm();
   initScrollAnimations();
 });
+
+/* --------------------------------------------------------------------------
+   SETTINGS SYNCHRONIZATION (CMS STORE -> FRONTEND)
+-------------------------------------------------------------------------- */
+function initSettingsSync() {
+  if (!window.cmsStore || !window.cmsStore.getSettings) return;
+  const s = window.cmsStore.getSettings();
+
+  // Sync Instagram links
+  if (s.instagramUrl) {
+    document.querySelectorAll('a[href*="instagram.com"]').forEach(a => {
+      a.href = s.instagramUrl;
+    });
+  }
+
+  // Sync YouTube links
+  if (s.youtubeUrl) {
+    document.querySelectorAll('a[href*="youtube.com"]').forEach(a => {
+      a.href = s.youtubeUrl;
+    });
+  }
+
+  // Sync WhatsApp links & phone numbers
+  if (s.whatsappNumber) {
+    const cleanNum = s.whatsappNumber.replace(/[\s\-\+]/g, '');
+    document.querySelectorAll('a[href*="wa.me"]').forEach(a => {
+      a.href = `https://wa.me/${cleanNum}?text=Hello%20Prabhat%20ji,%20I%20am%20contacting%20you%20from%20your%20website.`;
+    });
+  }
+}
 
 /* --------------------------------------------------------------------------
    NAVBAR & ACTIVE LINK HIGHLIGHTING
