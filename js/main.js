@@ -132,23 +132,23 @@ function initConcertCountdown() {
    UPCOMING LIVE SHOWS / GIGS FILTERING & TICKET ACTIONS
 -------------------------------------------------------------------------- */
 function initShowsFilter() {
-  const showsGrid = document.getElementById('shows-grid');
-  if (showsGrid && window.cmsStore && window.cmsStore.getShows) {
+  const showsContainers = document.querySelectorAll('#shows-grid, #shows-list, .shows-list');
+  if (showsContainers.length > 0 && window.cmsStore && window.cmsStore.getShows) {
     const shows = window.cmsStore.getShows();
     if (shows && shows.length > 0) {
-      showsGrid.innerHTML = shows.map(s => `
-        <div class="show-card" data-category="${s.category}">
+      const showsHTML = shows.map(s => `
+        <div class="show-card" data-category="${s.category || 'concert'}">
           <div class="show-date-badge">
             <span class="show-month">${s.month || 'NOV'}</span>
             <span class="show-day">${s.day || '01'}</span>
             <span class="show-year">${s.year || '2026'}</span>
           </div>
           <div class="show-details">
-            <div class="show-status-badge ${s.status === 'Sold Out' ? 'status-sold' : s.status === 'Limited Seats' ? 'status-selling' : 'status-available'}">${s.status}</div>
+            <div class="show-status-badge ${s.status === 'Sold Out' ? 'status-sold' : s.status === 'Limited Seats' ? 'status-selling' : 'status-available'}">${s.status || 'Tickets Available'}</div>
             <h3 class="show-title">${s.title}</h3>
             <div class="show-venue">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-              <span>${s.venue}</span>
+              <span>${s.venue || 'Kathmandu, Nepal'}</span>
             </div>
             <p class="show-desc">${s.description || ''}</p>
           </div>
@@ -158,11 +158,25 @@ function initShowsFilter() {
           </div>
         </div>
       `).join('');
+
+      showsContainers.forEach(container => {
+        container.innerHTML = showsHTML;
+      });
+
+      // Update countdown banner event info with next upcoming show
+      const nextShow = shows[0];
+      const cdTitle = document.querySelector('.cd-event-title');
+      const cdMeta = document.querySelector('.cd-event-meta');
+      if (nextShow && cdTitle) {
+        cdTitle.textContent = nextShow.title;
+      }
+      if (nextShow && cdMeta) {
+        cdMeta.textContent = `${nextShow.month || 'NOV'} ${nextShow.day || '18'}, ${nextShow.year || '2026'} • ${nextShow.venue}`;
+      }
     }
   }
 
   const filterBtns = document.querySelectorAll('.filter-btn[data-filter], .shows-filter-btn');
-  const showCards = document.querySelectorAll('.show-card');
 
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -170,7 +184,8 @@ function initShowsFilter() {
       btn.classList.add('active');
       const category = btn.dataset.filter;
 
-      showCards.forEach(card => {
+      const currentShowCards = document.querySelectorAll('.show-card');
+      currentShowCards.forEach(card => {
         if (category === 'all' || card.dataset.category === category) {
           card.style.display = 'grid';
           card.classList.add('fade-in');
@@ -181,16 +196,15 @@ function initShowsFilter() {
     });
   });
 
-  // Ticket reservation buttons
-  const ticketBtns = document.querySelectorAll('.btn-ticket, .btn-rsvp');
-  ticketBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const showTitle = btn.dataset.show || 'Upcoming Concert';
-      showToast(`🎟️ Reserving seats for "${showTitle}"... Redirecting to booking.`);
-      setTimeout(() => {
-        window.location.href = `booking.html?show=${encodeURIComponent(showTitle)}`;
-      }, 1000);
-    });
+  // Ticket reservation buttons (using event delegation for dynamic cards)
+  document.addEventListener('click', (e) => {
+    const ticketBtn = e.target.closest('.btn-ticket, .btn-rsvp');
+    if (!ticketBtn) return;
+    const showTitle = ticketBtn.dataset.show || 'Upcoming Concert';
+    showToast(`🎟️ Reserving seats for "${showTitle}"... Redirecting to booking.`);
+    setTimeout(() => {
+      window.location.href = `booking.html?show=${encodeURIComponent(showTitle)}`;
+    }, 1000);
   });
 }
 
