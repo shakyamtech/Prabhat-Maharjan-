@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="height: 140px; overflow: hidden; position: relative;">
             <img src="${t.cover || 'assets/images/hero-artist.jpg'}" alt="${t.title}" style="width: 100%; height: 100%; object-fit: cover;">
             <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; color: #fff;">
-              ⏱ ${t.duration || '03:30'}
+              ${t.audioUrl ? '🎵 Real Audio' : '🎼 Synthesized'} • ⏱ ${t.duration || '03:30'}
             </div>
           </div>
           <div class="item-card-body">
@@ -439,27 +439,95 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  document.getElementById('form-add-track').addEventListener('submit', (e) => {
+  // Firebase upload UI setup
+  const audioFileInput = document.getElementById('track-audio-file');
+  const firebaseBadge = document.getElementById('firebase-status-badge');
+  if (firebaseBadge) {
+    firebaseBadge.textContent = window.FIREBASE_READY ? '🟢 Firebase Connected' : '⚪ Firebase not configured';
+    firebaseBadge.style.color = window.FIREBASE_READY ? '#22c55e' : '#64748b';
+  }
+
+  if (audioFileInput) {
+    audioFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('upload-idle-state').style.display = 'none';
+      document.getElementById('upload-file-selected').style.display = 'block';
+      document.getElementById('selected-file-name').textContent = file.name;
+      document.getElementById('upload-done-msg').style.display = 'none';
+      document.getElementById('upload-err-msg').style.display = 'none';
+      document.getElementById('track-audio-url').value = '';
+    });
+  }
+
+  document.getElementById('form-add-track').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const trackId = `track-${Date.now()}`;
+    const saveBtn = document.getElementById('btn-save-track');
+    const audioFile = audioFileInput && audioFileInput.files[0];
+
+    let audioUrl = '';
+
+    // Upload audio file if selected
+    if (audioFile) {
+      if (!window.FIREBASE_READY) {
+        document.getElementById('upload-err-msg').style.display = 'block';
+        document.getElementById('upload-err-msg').textContent = '⚠ Firebase not configured. Please fill in js/firebase-config.js with your Firebase credentials.';
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Uploading...';
+      document.getElementById('upload-progress-wrap').style.display = 'block';
+      document.getElementById('upload-err-msg').style.display = 'none';
+
+      try {
+        audioUrl = await window.uploadAudioToFirebase(audioFile, trackId, (pct) => {
+          document.getElementById('upload-progress-bar').style.width = pct + '%';
+          document.getElementById('upload-pct').textContent = pct + '%';
+        });
+        document.getElementById('upload-progress-wrap').style.display = 'none';
+        document.getElementById('upload-done-msg').style.display = 'block';
+      } catch (err) {
+        document.getElementById('upload-progress-wrap').style.display = 'none';
+        document.getElementById('upload-err-msg').style.display = 'block';
+        document.getElementById('upload-err-msg').textContent = '❌ Upload failed: ' + err.message;
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Track';
+        return;
+      }
+    }
+
+    // Parse duration to seconds
+    const durStr = document.getElementById('track-duration').value.trim();
+    const durParts = durStr.split(':');
+    const durationSec = durParts.length === 2 ? parseInt(durParts[0]) * 60 + parseInt(durParts[1]) : 210;
+
     const newTrack = {
-      id: `track-${Date.now()}`,
+      id: trackId,
       title: document.getElementById('track-title').value.trim(),
       category: document.getElementById('track-category').value.trim(),
-      duration: document.getElementById('track-duration').value.trim(),
-      durationSec: 210,
+      duration: durStr,
+      durationSec,
       key: document.getElementById('track-key').value.trim(),
       bpm: 80,
       cover: document.getElementById('track-cover').value.trim() || 'assets/images/hero-artist.jpg',
       description: document.getElementById('track-desc').value.trim(),
-      style: 'guitar-vocal'
+      style: 'guitar-vocal',
+      ...(audioUrl && { audioUrl })
     };
 
     store.addTrack(newTrack);
     document.getElementById('modal-track').classList.remove('open');
     document.getElementById('form-add-track').reset();
+    if (audioFileInput) audioFileInput.value = '';
+    document.getElementById('upload-idle-state').style.display = 'block';
+    document.getElementById('upload-file-selected').style.display = 'none';
+    document.getElementById('upload-done-msg').style.display = 'none';
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Track'; }
     updateKPIs();
     renderTracks();
-    showToast('New audio track added.');
+    showToast(audioUrl ? '🎵 Track & audio uploaded successfully!' : 'New audio track added.');
   });
 
   // 4. GALLERY MANAGER

@@ -18,6 +18,8 @@ class AudioEngine {
     this.timer = null;
     this.isMasteredMode = true; // For A/B testing
     this.activeNodes = [];
+    this.audioEl = null;       // HTML5 Audio element for real files
+    this.audioElSource = null; // MediaElementSource node
 
     const defaultTracks = [
       {
@@ -158,7 +160,12 @@ class AudioEngine {
     if (this.progressBar) {
       this.progressBar.addEventListener('input', (e) => {
         const pct = parseFloat(e.target.value);
-        this.currentTime = (pct / 100) * this.tracks[this.currentTrackIndex].durationSec;
+        const track = this.tracks[this.currentTrackIndex];
+        this.currentTime = (pct / 100) * track.durationSec;
+        // Seek real audio too
+        if (track.audioUrl && this.audioEl) {
+          this.audioEl.currentTime = this.currentTime;
+        }
         this.updateTimeDisplay();
       });
     }
@@ -236,6 +243,25 @@ class AudioEngine {
     this.currentTime = 0;
     this.updateTimeDisplay();
 
+    // Setup HTML5 audio element if track has real audio URL
+    if (track.audioUrl) {
+      if (!this.audioEl) {
+        this.audioEl = new Audio();
+        this.audioEl.crossOrigin = 'anonymous';
+        this.audioEl.addEventListener('ended', () => this.nextTrack());
+      }
+      if (this.audioEl.src !== track.audioUrl) {
+        this.audioEl.src = track.audioUrl;
+        this.audioElSource = null; // reset source node for new element load
+      }
+    } else {
+      // Stop real audio if switching to synthesized track
+      if (this.audioEl) {
+        this.audioEl.pause();
+        this.audioEl.src = '';
+      }
+    }
+
     // Update active highlight in playlist
     document.querySelectorAll('.playlist-track').forEach((el, idx) => {
       el.classList.toggle('active', idx === index);
@@ -255,6 +281,7 @@ class AudioEngine {
   }
 
   play() {
+    const track = this.tracks[this.currentTrackIndex];
     this.initAudioContext();
     this.isPlaying = true;
     if (this.playBtn) {
@@ -270,11 +297,23 @@ class AudioEngine {
       el.classList.toggle('playing', idx === this.currentTrackIndex && this.isPlaying);
     });
 
-    this.startAudioLoop();
+    if (track.audioUrl && this.audioEl) {
+      // Real audio playback via HTML5 Audio + Web Audio API analyser
+      if (!this.audioElSource && this.ctx) {
+        try {
+          this.audioElSource = this.ctx.createMediaElementSource(this.audioEl);
+          this.audioElSource.connect(this.gainNode);
+        } catch(e) { /* already connected */ }
+      }
+      this.audioEl.play().catch(err => console.warn('Audio play error:', err));
+    } else {
+      this.startAudioLoop();
+    }
     this.startTimer();
   }
 
   pause() {
+    const track = this.tracks[this.currentTrackIndex];
     this.isPlaying = false;
     if (this.playBtn) {
       this.playBtn.innerHTML = `
@@ -289,7 +328,11 @@ class AudioEngine {
       el.classList.remove('playing');
     });
 
-    this.stopAudioLoop();
+    if (track.audioUrl && this.audioEl) {
+      this.audioEl.pause();
+    } else {
+      this.stopAudioLoop();
+    }
     clearInterval(this.timer);
   }
 
@@ -308,7 +351,13 @@ class AudioEngine {
     this.timer = setInterval(() => {
       if (!this.isPlaying) return;
       const track = this.tracks[this.currentTrackIndex];
-      this.currentTime++;
+
+      // Sync time from real audio element if available
+      if (track.audioUrl && this.audioEl && this.audioEl.src) {
+        this.currentTime = this.audioEl.currentTime;
+      } else {
+        this.currentTime++;
+      }
 
       if (this.currentTime >= track.durationSec) {
         this.nextTrack();
@@ -316,7 +365,7 @@ class AudioEngine {
       }
 
       this.updateTimeDisplay();
-    }, 1000);
+    }, 500);
   }
 
   updateTimeDisplay() {
