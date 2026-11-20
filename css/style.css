@@ -2622,6 +2622,36 @@ textarea.custom-input {
     display: none;
   }
 
+  .nav-actions .nav-bookings-badge,
+  .nav-bookings-badge {
+    display: none !important;
+  }
+
+  .nav-logo {
+    font-size: 1.05rem;
+    gap: 8px;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .nav-logo > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.15;
+    min-width: 0;
+  }
+
+  .logo-sound-wave {
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .logo-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+  }
+
   .nav-toggle {
     display: block;
   }
@@ -2780,6 +2810,25 @@ textarea.custom-input {
   .container {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .nav-logo {
+    font-size: 0.92rem;
+    gap: 6px;
+  }
+
+  .logo-sound-wave {
+    height: 16px;
+    gap: 2px;
+  }
+
+  .logo-sound-wave span {
+    width: 2.5px;
+  }
+
+  .logo-sub {
+    font-size: 0.55rem;
+    letter-spacing: 0.05em;
   }
 
   .hero-cta-group {
