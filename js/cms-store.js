@@ -315,7 +315,21 @@ class CMSStore {
   // Settings
   getSettings() {
     try {
-      return JSON.parse(localStorage.getItem(CMS_STORAGE_KEYS.SETTINGS)) || DEFAULT_SETTINGS;
+      const stored = JSON.parse(localStorage.getItem(CMS_STORAGE_KEYS.SETTINGS));
+      if (!stored) return DEFAULT_SETTINGS;
+      // Migrate: always apply latest defaults for critical contact fields
+      const migrated = { ...DEFAULT_SETTINGS, ...stored };
+      // Force correct phone/email if stored values are outdated placeholders
+      if (stored.whatsappNumber === '9779841000000' || stored.whatsappNumber === '977984100000') {
+        migrated.whatsappNumber = DEFAULT_SETTINGS.whatsappNumber;
+      }
+      if (stored.studioPhone === '+977 9841 000000') {
+        migrated.studioPhone = DEFAULT_SETTINGS.studioPhone;
+      }
+      if (stored.studioEmail === 'prabhat.maharjan.music@gmail.com') {
+        migrated.studioEmail = DEFAULT_SETTINGS.studioEmail;
+      }
+      return migrated;
     } catch (e) {
       return DEFAULT_SETTINGS;
     }
