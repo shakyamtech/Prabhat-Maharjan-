@@ -852,13 +852,16 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Studio settings updated successfully.');
   });
 
-  document.getElementById('btn-reset-data').addEventListener('click', () => {
-    if (confirm('WARNING: Reset all live CMS data back to initial demo seeds?')) {
-      store.resetAllData();
-      loadDashboard();
-      showToast('CMS data reset to defaults.');
-    }
-  });
+  const btnResetData = document.getElementById('btn-reset-data');
+  if (btnResetData) {
+    btnResetData.addEventListener('click', () => {
+      if (confirm('WARNING: Reset all live CMS data back to initial demo seeds?')) {
+        store.resetAllData();
+        loadDashboard();
+        showToast('CMS data reset to defaults.');
+      }
+    });
+  }
 
   // Initialize
   setupModals();
