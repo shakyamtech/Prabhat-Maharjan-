@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   studioPhone: '+977 9840515079',
   studioAddress: 'Prabhat Maharjan Sound Studio, Patan, Kathmandu, Nepal',
   instagramUrl: 'https://www.instagram.com/maharjan.prabhat/',
-  youtubeUrl: 'https://www.youtube.com',
+  youtubeUrl: 'https://www.youtube.com/channel/UC5GVgl4vYWJJbNpOG7TTtnA',
   adminPin: 'studio@2026'
 };
 
@@ -328,6 +328,9 @@ class CMSStore {
       }
       if (stored.studioEmail === 'prabhat.maharjan.music@gmail.com') {
         migrated.studioEmail = DEFAULT_SETTINGS.studioEmail;
+      }
+      if (stored.youtubeUrl === 'https://www.youtube.com' || !stored.youtubeUrl) {
+        migrated.youtubeUrl = DEFAULT_SETTINGS.youtubeUrl;
       }
       return migrated;
     } catch (e) {
