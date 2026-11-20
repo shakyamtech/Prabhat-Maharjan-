@@ -813,6 +813,10 @@ document.addEventListener('DOMContentLoaded', () => {
     store.addPhoto(newPhoto);
     document.getElementById('modal-photo').classList.remove('open');
     document.getElementById('form-add-photo').reset();
+    if (photoPreviewImg) { photoPreviewImg.src = ''; photoPreviewImg.style.display = 'none'; }
+    if (photoPlaceholder) photoPlaceholder.style.display = 'block';
+    if (photoUploadStatus) { photoUploadStatus.textContent = 'Choose image from device'; photoUploadStatus.style.color = '#94a3b8'; }
+    if (photoFileInput) photoFileInput.value = '';
     updateKPIs();
     renderGallery();
     showToast('Photo added to gallery.');
