@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadSettings() {
     const s = store.getSettings();
     document.getElementById('set-whatsapp').value = s.whatsappNumber || '9779840515079';
-    document.getElementById('set-email').value = s.studioEmail || 'prabhat.maharjan.music@gmail.com';
+    document.getElementById('set-email').value = s.studioEmail || 'prabhatmaharjan97@gmail.com';
     document.getElementById('set-address').value = s.studioAddress || '';
     document.getElementById('set-instagram').value = s.instagramUrl || '';
     document.getElementById('set-youtube').value = s.youtubeUrl || '';
